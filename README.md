@@ -1,36 +1,61 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PLAVE Album Tracker
 
-## Getting Started
+PLAVE 4th Mini Album 'Caligo Pt.2' 예약판매 판매처/가격/특전 비교 트래커
 
-First, run the development server:
+**https://plave-album-tracker.vercel.app**
+
+## 사용 방법
+
+### 버전 탭
+- 상단 4개 탭(PHOTOBOOK / ID PASS / INVENTORY / POCAALBUM)으로 버전별 판매처를 확인
+- 각 탭에서 해당 버전을 취급하는 판매처만 표시
+- 미공포(미공개 포토카드) 특전도 해당 버전에서만 표시
+
+### 장바구니
+- 판매처 왼쪽 체크박스를 눌러 장바구니에 담기
+- 세트/개별 전환, 수량 조절 가능
+- 배송비 자동 계산 (무료배송 조건 반영)
+- 해외 상품은 원화 환산가 + 원래 가격 표시
+
+### 구매 완료
+- 장바구니에 담긴 항목에서 "구매 완료 표시" 클릭
+- 구매 완료된 판매처는 리스트에서 흐리게 표시
+- 구매 내역 삭제 시 확인 알림
+
+### 미공포 현황
+- 우측 패널에서 전체 미공포 수집 현황 확인
+- 장바구니에 담기면 하이라이트, 구매 완료하면 체크 표시
+- 각 항목에 앨범 수량 표시
+
+### 드볼 진행도
+- 버전별 풀세트 수집에 필요한 최소 앨범 수 대비 진행률
+- 장바구니 + 구매 내역 합산
+
+### 상세 보기
+- 판매처 카드를 클릭하면 상세 패널 펼침
+- 가격, 독점 특전 이미지, 판매 기간, 오프라인 매장 정보 확인
+- "구매하러 가기" 버튼으로 버전별 구매 페이지 직접 이동
+
+### D-day
+- 마감일이 있는 판매처는 D-day 자동 표시
+- 3일 이내 마감은 빨간색으로 강조
+
+## 데이터 저장
+
+- 장바구니, 구매 내역은 **브라우저 localStorage**에 저장
+- 같은 기기 + 같은 브라우저면 브라우저를 닫아도 데이터 유지
+- 브라우저 캐시 삭제, 시크릿 모드, 다른 기기에서는 데이터 없음
+
+## 데이터 출처
+
+- [플레이브 음원총공팀 예판 정리본](https://docs.google.com/spreadsheets/d/1ZoCg8ovvls40kOYZfQqgT7Jk9vuUyP6FSabl7G4Au0U/edit?gid=0#gid=0)
+- 각 판매처 공식 페이지에서 직접 확인한 가격/특전/판매 기간
+
+## 개발
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+http://localhost:3000 에서 확인

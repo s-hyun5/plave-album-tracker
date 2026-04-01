@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import "./globals.css";
 import Nav from "@/components/Nav";
@@ -11,6 +11,12 @@ const geist = Geist({
 export const metadata: Metadata = {
   title: "PLAVE Caligo Pt.2 Tracker",
   description: "플레이브 4th Mini Album 앨범 판매처 · 가격 비교 · 구매 기록",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
 };
 
 export default function RootLayout({

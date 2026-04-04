@@ -67,6 +67,38 @@ function useExchangeRates(): ExchangeRateState {
   return state;
 }
 
+const LAST_SYNC_DATE = "2026.04.04";
+
+function useSpreadsheetUpdate() {
+  const [hasUpdate, setHasUpdate] = useState(false);
+  const [sheetDate, setSheetDate] = useState<string | null>(null);
+
+  useEffect(() => {
+    const dismissed = localStorage.getItem("plave-sheet-dismissed");
+    fetch("https://docs.google.com/spreadsheets/d/1ZoCg8ovvls40kOYZfQqgT7Jk9vuUyP6FSabl7G4Au0U/gviz/tq?tqx=out:csv&gid=0&range=E1")
+      .then((r) => r.text())
+      .then((text) => {
+        // "Update. 26.03.30" 같은 형태에서 날짜 추출
+        const match = text.match(/(\d{2})\.(\d{2})\.(\d{2})/);
+        if (match) {
+          const date = `20${match[1]}.${match[2]}.${match[3]}`;
+          setSheetDate(date);
+          if (date > LAST_SYNC_DATE && dismissed !== date) {
+            setHasUpdate(true);
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const dismiss = () => {
+    if (sheetDate) localStorage.setItem("plave-sheet-dismissed", sheetDate);
+    setHasUpdate(false);
+  };
+
+  return { hasUpdate, sheetDate, dismiss };
+}
+
 function toKRW(price: number, currency: Currency, rates: Record<Currency, number>): number {
   return Math.round(price * rates[currency]);
 }
@@ -114,11 +146,16 @@ export default function Dashboard() {
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [benefitState, setBenefitState] = useState<Record<string, boolean>>({});
   const [lightboxImg, setLightboxImg] = useState<string | null>(null);
+  const [mobilePanel, setMobilePanel] = useState<"list" | "cart" | "benefits" | "purchases">("list");
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<"all" | "available" | "cart" | "purchased" | "closed">("all");
+  const [sortBy, setSortBy] = useState<"price" | "deadline" | "exclusive">("exclusive");
   const [syncCode, setSyncCodeState] = useState<string | null>(null);
   const [syncInput, setSyncInput] = useState("");
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
   const [showSync, setShowSync] = useState(false);
   const exchangeRate = useExchangeRates();
+  const sheetUpdate = useSpreadsheetUpdate();
 
   // Load from localStorage
   useEffect(() => {
@@ -148,15 +185,46 @@ export default function Dashboard() {
     );
   }, []);
 
-  // Retailers filtered by version, sorted: exclusive first, then price asc
+  // Helper: get deadline for a retailer
+  const getDeadlineDate = useCallback((r: Retailer) => {
+    const deadlineStr = r.deadline || r.salePeriods?.find((sp) => sp.type === "online" && (!sp.versions || sp.versions.includes(activeTab)))?.end;
+    if (!deadlineStr) return null;
+    return new Date(deadlineStr.replace(" ", "T"));
+  }, [activeTab]);
+
+  // Retailers filtered by version + status, sorted by option
   const retailers = useMemo(() => {
-    return RETAILERS.filter((r) =>
-      r.products.some((p) => p.version === activeTab)
-    ).sort((a, b) => {
-      const aExcl = a.benefits.some((b) => b.isExclusive && (!b.versions || b.versions.includes(activeTab)));
-      const bExcl = b.benefits.some((b) => b.isExclusive && (!b.versions || b.versions.includes(activeTab)));
-      if (aExcl && !bExcl) return -1;
-      if (!aExcl && bExcl) return 1;
+    const now = new Date();
+    return RETAILERS.filter((r) => {
+      if (!r.products.some((p) => p.version === activeTab)) return false;
+      // Status filter
+      if (statusFilter === "available") {
+        const d = getDeadlineDate(r);
+        if (d && d < now) return false;
+        return !purchases.some((p) => p.retailerId === r.id && p.version === activeTab);
+      }
+      if (statusFilter === "cart") return cart.some((c) => c.retailerId === r.id && c.version === activeTab);
+      if (statusFilter === "purchased") return purchases.some((p) => p.retailerId === r.id && p.version === activeTab);
+      if (statusFilter === "closed") {
+        const d = getDeadlineDate(r);
+        return d ? d < now : false;
+      }
+      return true;
+    }).sort((a, b) => {
+      if (sortBy === "exclusive") {
+        const aExcl = a.benefits.some((b) => b.isExclusive && (!b.versions || b.versions.includes(activeTab)));
+        const bExcl = b.benefits.some((b) => b.isExclusive && (!b.versions || b.versions.includes(activeTab)));
+        if (aExcl && !bExcl) return -1;
+        if (!aExcl && bExcl) return 1;
+      }
+      if (sortBy === "deadline") {
+        const aD = getDeadlineDate(a);
+        const bD = getDeadlineDate(b);
+        if (aD && !bD) return -1;
+        if (!aD && bD) return 1;
+        if (aD && bD) return aD.getTime() - bD.getTime();
+      }
+      // Always fallback to price sort
       const getPriceForSort = (r: Retailer) => {
         const sp = getSetPrice(r, activeTab);
         if (!sp) return Infinity;
@@ -166,7 +234,7 @@ export default function Dashboard() {
       };
       return getPriceForSort(a) - getPriceForSort(b);
     });
-  }, [activeTab, exchangeRate.rates]);
+  }, [activeTab, exchangeRate.rates, statusFilter, sortBy, cart, purchases, getDeadlineDate]);
 
   // Cart helpers
   const isInCart = (retailerId: string) => cart.some((c) => c.retailerId === retailerId && c.version === activeTab);
@@ -281,6 +349,12 @@ export default function Dashboard() {
             >
               {syncCode ? `🔗 ${syncCode}` : "🔄 동기화"}
             </button>
+            <button
+              onClick={() => setShowCalendar(true)}
+              className="text-[11px] sm:text-xs px-2 sm:px-3 py-1.5 rounded border border-border text-muted hover:text-foreground hover:border-muted transition-colors"
+            >
+              📅 일정
+            </button>
             <a
               href="https://docs.google.com/spreadsheets/d/1ZoCg8ovvls40kOYZfQqgT7Jk9vuUyP6FSabl7G4Au0U/edit?gid=0#gid=0"
               target="_blank"
@@ -292,11 +366,23 @@ export default function Dashboard() {
           </div>
         </div>
         <p className="text-[10px] text-muted">
-          📋 데이터 동기화: 2026.04.01 14:50
+          📋 데이터 동기화: {LAST_SYNC_DATE}
           {exchangeRate.updatedAt && (
             <> · 💱 환율: {new Date(exchangeRate.updatedAt).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })} 기준 (1 USD = {exchangeRate.rates.USD.toLocaleString()}원)</>
           )}
         </p>
+        {sheetUpdate.hasUpdate && (
+          <div className="flex items-center gap-2 text-xs bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-1.5">
+            <span>🔔 음총팀 정리본이 업데이트됨 ({sheetUpdate.sheetDate})</span>
+            <a
+              href="https://docs.google.com/spreadsheets/d/1ZoCg8ovvls40kOYZfQqgT7Jk9vuUyP6FSabl7G4Au0U/edit?gid=0#gid=0"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-amber-600 underline"
+            >확인</a>
+            <button onClick={sheetUpdate.dismiss} className="text-muted hover:text-foreground ml-auto">✕</button>
+          </div>
+        )}
       </div>
 
       {/* Sync panel */}
@@ -423,10 +509,32 @@ export default function Dashboard() {
         })}
       </div>
 
+      {/* Filter + Sort bar */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex gap-1 flex-1 min-w-0 overflow-x-auto">
+          {([["all", "전체"], ["available", "미구매"], ["cart", "장바구니"], ["purchased", "구매완료"], ["closed", "마감"]] as const).map(([key, label]) => (
+            <button
+              key={key}
+              onClick={() => setStatusFilter(key)}
+              className={`text-[11px] px-2.5 py-1 rounded-full border whitespace-nowrap transition-colors ${statusFilter === key ? "bg-accent text-white border-accent" : "border-border text-muted hover:border-muted"}`}
+            >{label}</button>
+          ))}
+        </div>
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as "price" | "deadline" | "exclusive")}
+          className="text-[11px] px-2 py-1 rounded border border-border bg-card text-muted"
+        >
+          <option value="exclusive">미공포 우선</option>
+          <option value="price">가격 낮은순</option>
+          <option value="deadline">마감 임박순</option>
+        </select>
+      </div>
+
       {/* Main: list + panel */}
-      <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
+      <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 pb-20 lg:pb-0">
         {/* Left: retailer list */}
-        <div className="flex-1 min-w-0 space-y-2">
+        <div className={`flex-1 min-w-0 space-y-2 ${mobilePanel !== "list" ? "hidden lg:block" : ""}`}>
           {retailers.map((r) => {
             const products = r.products.filter((p) => p.version === activeTab);
             const sp = getSetPrice(r, activeTab);
@@ -632,10 +740,11 @@ export default function Dashboard() {
         </div>
 
         {/* Right: panels */}
-        <div className="w-full lg:w-80 flex-shrink-0">
+        <div className={`w-full lg:w-80 flex-shrink-0 ${mobilePanel === "list" ? "hidden lg:block" : ""}`}>
           <div className="lg:sticky lg:top-16 space-y-4">
+
             {/* Cart */}
-            <div className="bg-card rounded-lg border border-border p-4">
+            <div className={`bg-card rounded-lg border border-border p-4 ${mobilePanel !== "cart" && mobilePanel !== "list" ? "hidden lg:block" : ""}`}>
               <h2 className="font-semibold text-sm mb-3">장바구니</h2>
               {cart.length === 0 ? (
                 <p className="text-xs text-muted py-3 text-center">체크박스를 눌러 담아보세요</p>
@@ -708,7 +817,7 @@ export default function Dashboard() {
             </div>
 
             {/* 미공포 현황 — 압축 그리드 */}
-            <div className="bg-card rounded-lg border border-border p-4">
+            <div className={`bg-card rounded-lg border border-border p-4 ${mobilePanel !== "benefits" && mobilePanel !== "list" ? "hidden lg:block" : ""}`}>
               <div className="flex items-center justify-between mb-3">
                 <h2 className="font-semibold text-sm">미공포 현황</h2>
                 <span className="text-xs text-muted">
@@ -752,7 +861,7 @@ export default function Dashboard() {
             </div>
 
             {/* 드볼 진행도 */}
-            <div className="bg-card rounded-lg border border-border p-4">
+            <div className={`bg-card rounded-lg border border-border p-4 ${mobilePanel !== "benefits" && mobilePanel !== "list" ? "hidden lg:block" : ""}`}>
               <h2 className="font-semibold text-sm mb-3">드볼 진행도</h2>
               <div className="space-y-2">
                 {dbolRequirements.map((req) => {
@@ -777,7 +886,7 @@ export default function Dashboard() {
 
             {/* 구매 내역 */}
             {purchases.length > 0 && (
-              <div className="bg-card rounded-lg border border-border p-4">
+              <div className={`bg-card rounded-lg border border-border p-4 ${mobilePanel !== "purchases" && mobilePanel !== "list" ? "hidden lg:block" : ""}`}>
                 <h2 className="font-semibold text-sm mb-3">구매 내역</h2>
                 <div className="space-y-2">
                   {purchases.map((p) => {
@@ -804,6 +913,82 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Mobile bottom nav */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-sm border-t border-border lg:hidden">
+        <div className="flex justify-around items-center h-14 max-w-lg mx-auto">
+          {([
+            ["list", "판매처", "🏪"],
+            ["cart", "장바구니", "🛒"],
+            ["benefits", "미공포", "🃏"],
+            ["purchases", "구매내역", "📦"],
+          ] as const).map(([key, label, icon]) => (
+            <button
+              key={key}
+              onClick={() => setMobilePanel(key)}
+              className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors ${
+                mobilePanel === key ? "text-accent" : "text-muted"
+              }`}
+            >
+              <span className="text-lg">{icon}</span>
+              <span className="text-[10px]">{label}{key === "cart" && cart.length > 0 ? ` (${cart.length})` : ""}</span>
+            </button>
+          ))}
+          <button
+            onClick={() => setShowCalendar(true)}
+            className="flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors text-muted"
+          >
+            <span className="text-lg">📅</span>
+            <span className="text-[10px]">일정</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Calendar modal */}
+      {showCalendar && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setShowCalendar(false)}>
+          <div className="bg-card rounded-xl border border-border p-5 w-full max-w-md max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-semibold">📅 일정 캘린더</h2>
+              <button onClick={() => setShowCalendar(false)} className="text-muted hover:text-foreground text-lg">✕</button>
+            </div>
+            <div className="space-y-2">
+              {(() => {
+                const now = new Date();
+                const events: { date: string; label: string; color: string; past: boolean }[] = [];
+                RETAILERS.forEach((r) => {
+                  const deadlineStr = r.deadline || r.salePeriods?.find((sp) => sp.type === "online")?.end;
+                  if (deadlineStr) {
+                    const d = new Date(deadlineStr.replace(" ", "T"));
+                    events.push({ date: deadlineStr.split(" ")[0], label: `${r.name} 마감`, color: d < now ? "var(--muted)" : "var(--exclusive)", past: d < now });
+                  }
+                  r.salePeriods?.filter((sp) => sp.type === "offline").forEach((sp) => {
+                    events.push({ date: sp.start.split(" ")[0], label: `${r.name} 오프라인`, color: "var(--accent)", past: new Date(sp.end.replace(" ", "T")) < now });
+                  });
+                });
+                events.sort((a, b) => a.date.localeCompare(b.date));
+                const grouped = events.reduce<Record<string, typeof events>>((acc, e) => {
+                  (acc[e.date] = acc[e.date] || []).push(e);
+                  return acc;
+                }, {});
+                return Object.entries(grouped).map(([date, items]) => (
+                  <div key={date} className={`flex gap-3 text-sm py-1.5 ${items[0].past ? "opacity-40" : ""}`}>
+                    <span className="w-14 flex-shrink-0 text-muted font-mono text-xs pt-0.5">{date.slice(5)}</span>
+                    <div className="flex-1 space-y-1">
+                      {items.map((item, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
+                          <span className="text-xs">{item.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ));
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Lightbox */}
       {lightboxImg && (

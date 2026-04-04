@@ -103,6 +103,6 @@ export const ALBUM_SPECS: AlbumSpec[] = [
 export const COLLECTION_REQUIREMENTS = [
   { version: "PHOTOBOOK" as AlbumVersion, minAlbums: 5, cost: 100000, bottleneck: "PHOTOCARD 10종 (2장/앨범)" },
   { version: "ID_PASS" as AlbumVersion, minAlbums: 10, cost: 149000, bottleneck: "SEAL STICKER 10종 (1장/앨범)" },
-  { version: "INVENTORY" as AlbumVersion, minAlbums: 5, cost: 85500, bottleneck: "PHOTOCARD 10종 (2장/앨범)" },
+  { version: "INVENTORY" as AlbumVersion, minAlbums: 10, cost: 171000, bottleneck: "PHOTOCARD 10종 (1장/앨범)" },
   { version: "POCAALBUM" as AlbumVersion, minAlbums: 20, cost: 164000, bottleneck: "PHOTOCARD 58종 (3장/앨범)" },
 ];

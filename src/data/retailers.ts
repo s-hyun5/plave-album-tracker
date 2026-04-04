@@ -185,7 +185,7 @@ export const RETAILERS: Retailer[] = [
     ],
     benefits: [
       { type: "photocard", name: "무신사 2차 미공포", description: "미공개 포토카드 5종 중 1종 랜덤 (1:1, 2장 이상 구매 시 중복없이, 온/오프라인 동일)", isExclusive: true, versions: ["ID_PASS"], image: "/benefits/musinsa-M.png" },
-      { type: "photocard", name: "A2T DRAW 포토카드", description: "ASTERUM 433-10에서 제공되는 A2T DRAW와 동일한 포토카드 (온/오프라인 동일)", isExclusive: false },
+      { type: "photocard", name: "ASTERUM 433-10 A2T DRAW 포토카드", description: "ASTERUM 433-10에서 제공되는 A2T DRAW와 동일한 포토카드 5종 중 랜덤 1종 (온라인 2차 + 명동 오프라인 동일, 십카페 럭드로도 동일 미공포 수령 가능)", isExclusive: false },
     ],
     salePeriods: [
       { type: "online", start: "2026-04-14 11:00", end: "2026-04-20 23:00" },
@@ -263,7 +263,10 @@ export const RETAILERS: Retailer[] = [
       { type: "photocard", name: "Exclusive 포카 (BITE Ver.)", description: "hello82 Exclusive 포토카드 55×85mm, 5종 중 1종 랜덤", isExclusive: true, versions: ["ID_PASS"], image: "/benefits/hello82-B.png" },
       { type: "photocard", name: "POP-UP 포카 (LOOKUP Ver.)", description: "POP-UP Exclusive 포토카드 55×85mm, 5종 중 1종 랜덤", isExclusive: true, versions: ["ID_PASS"], image: "/benefits/hello82-L.png" },
     ],
-    notes: ["미국 주소만 가능 (포워딩 불가)", "버전당 최대 4장", "Billboard·Circle·Hanteo 차트 반영"],
+    salePeriods: [
+      { type: "online", start: "2026-03-24 11:00", end: "2026-04-17 23:59" },
+    ],
+    notes: ["미국 주소만 가능 (포워딩 불가)", "버전당 최대 4장"],
     chartReflection: ["Billboard", "Circle", "한터"],
   },
   {
@@ -282,8 +285,12 @@ export const RETAILERS: Retailer[] = [
       { version: "ID_PASS", saleType: "set", price: 1900, currency: "TWD", url: "https://www.willmusic.com.tw/SalePage/Index/11651547" },
       { version: "INVENTORY", saleType: "random", price: 430, currency: "TWD", url: "https://www.willmusic.com.tw/SalePage/Index/11651533" },
       { version: "INVENTORY", saleType: "set", price: 2150, currency: "TWD", url: "https://www.willmusic.com.tw/SalePage/Index/11651533" },
+      { version: "POCAALBUM", saleType: "random", price: 210, currency: "TWD" },
+      { version: "POCAALBUM", saleType: "set", price: 1050, currency: "TWD" },
     ],
-    benefits: [],
+    benefits: [
+      { type: "photocard", name: "WillMusic 미공포", description: "POCAALBUM 구매 시 미공개 포토카드 5종 중 1종 랜덤", isExclusive: true, versions: ["POCAALBUM"], image: "/benefits/will.png" },
+    ],
     salePeriods: [
       { type: "online", start: "2026-03-24 10:00", end: "2026-04-20 23:59" },
     ],
@@ -298,6 +305,7 @@ export const RETAILERS: Retailer[] = [
     shippingFee: null,
     shippingNote: "순풍택배 첫 건 13元 + 추가 8元",
     products: [
+      { version: "PHOTOBOOK", saleType: "single", price: 96, currency: "CNY" },
       { version: "INVENTORY", saleType: "random", price: 82, currency: "CNY", url: "https://i2.y.qq.com/n3/cm/pages/putao/product_detail/index.html?productID=1205352611489586" },
       { version: "POCAALBUM", saleType: "random", price: 39, currency: "CNY", url: "https://i2.y.qq.com/n3/cm/pages/putao/product_detail/index.html?productID=1205352975280253" },
     ],
@@ -514,13 +522,14 @@ export const RETAILERS: Retailer[] = [
     notes: ["앨범/특전 미정", "집계 마감일 당일 23시까지 차트 집계", "충분한 재고 예정", "현장 소진 시 배송 가능"],
   },
   {
-    id: "gp_09platform_wave2",
-    name: "09Platform 2차 (HMV/TOWER)",
+    id: "gp_09platform_tower2",
+    name: "타워레코드 2차 (09Platform)",
     country: "KR",
     currency: "KRW",
     type: "group_purchase",
     organizer: "음원총공팀",
     url: "https://09platform.com/surl/P/1312",
+    originalRetailer: "Tower Records",
     deadline: "2026-04-07 18:00",
     shippingFee: 11500,
     shippingNote: "11,500원 고정",
@@ -529,8 +538,32 @@ export const RETAILERS: Retailer[] = [
       { version: "ID_PASS", saleType: "set", price: 122060, currency: "KRW", url: "https://09platform.com/surl/P/1312" },
     ],
     benefits: [
-      { type: "photocard", name: "HMV 미공포 (도안 A)", description: "멤버별 포토카드 5종 (단품 1장 랜덤 / 세트 5장 1세트)", isExclusive: true, versions: ["ID_PASS"] },
-      { type: "photocard", name: "타워레코 미공포 (도안 B)", description: "멤버별 포토카드 5종 (단품 1장 랜덤 / 세트 5장 1세트)", isExclusive: true, versions: ["ID_PASS"] },
+      { type: "photocard", name: "타워레코 미공포 (도안 B)", description: "멤버별 포토카드 5종 (단품 1장 랜덤 / 세트 5장 1세트)", isExclusive: true, versions: ["ID_PASS"], image: "/benefits/tower.png" },
+    ],
+    chartReflection: ["한터", "써클", "오리콘", "Billboard JP"],
+    salePeriods: [
+      { type: "online", start: "2026-03-30", end: "2026-04-07 18:00" },
+    ],
+    notes: ["1차와 묶음 배송 불가", "출고 5월 중~말 예상", "품절 시 조기마감"],
+  },
+  {
+    id: "gp_09platform_hmv2",
+    name: "HMV 2차 (09Platform)",
+    country: "KR",
+    currency: "KRW",
+    type: "group_purchase",
+    organizer: "음원총공팀",
+    url: "https://09platform.com/surl/P/1312",
+    originalRetailer: "HMV",
+    deadline: "2026-04-07 18:00",
+    shippingFee: 11500,
+    shippingNote: "11,500원 고정",
+    products: [
+      { version: "ID_PASS", saleType: "random", price: 24410, currency: "KRW", url: "https://09platform.com/surl/P/1312" },
+      { version: "ID_PASS", saleType: "set", price: 122060, currency: "KRW", url: "https://09platform.com/surl/P/1312" },
+    ],
+    benefits: [
+      { type: "photocard", name: "HMV 미공포 (도안 A)", description: "멤버별 포토카드 5종 (단품 1장 랜덤 / 세트 5장 1세트)", isExclusive: true, versions: ["ID_PASS"], image: "/benefits/hmv.png" },
     ],
     chartReflection: ["한터", "써클", "오리콘", "Billboard JP"],
     salePeriods: [
@@ -547,17 +580,24 @@ export const RETAILERS: Retailer[] = [
     currency: "KRW",
     type: "retailer",
     url: "https://www.musicplant.co.kr",
-    shippingFee: null,
-    shippingNote: "확인 필요",
+    shippingFee: 0,
+    shippingNote: "무료배송",
     products: [
+      { version: "PHOTOBOOK", saleType: "single", price: 20000, currency: "KRW" },
+      { version: "ID_PASS", saleType: "random", price: 14900, currency: "KRW" },
+      { version: "ID_PASS", saleType: "set", price: 74500, currency: "KRW" },
       { version: "INVENTORY", saleType: "random", price: 17100, currency: "KRW", url: "https://www.musicplant.co.kr/shop/detail.php?pno=F21C6066B1CA9F129F1BE8AB5EE8355B&rURL=https%3A%2F%2Fwww.musicplant.co.kr%2F&ctype=1&cno1=1010" },
+      { version: "INVENTORY", saleType: "set", price: 85500, currency: "KRW" },
+      { version: "POCAALBUM", saleType: "random", price: 8200, currency: "KRW" },
+      { version: "POCAALBUM", saleType: "set", price: 41000, currency: "KRW" },
     ],
     benefits: [
-      { type: "photocard", name: "뮤직플랜트 미공포", description: "미공개 포토카드 5종 중 1종 랜덤", isExclusive: true, versions: ["INVENTORY"], image: "/benefits/music-P.png" },
-      { type: "event", name: "영상통화 이벤트 2차", description: "영상통화 이벤트 2차 (INVENTORY Ver)", isExclusive: false, versions: ["INVENTORY"] },
+      { type: "photocard", name: "뮤직플랜트 미공포", description: "미공개 포토카드 5종 중 1종 랜덤 (2개 이상 구매 시 중복없이, 앨범 중복 가능)", isExclusive: true, versions: ["INVENTORY"], image: "/benefits/music-P.png" },
+      { type: "event", name: "영상통화 이벤트 2차", description: "INVENTORY 구매 시 영상통화 이벤트 응모 (50명 추첨, 영통 4/26)", isExclusive: false, versions: ["INVENTORY"] },
     ],
     salePeriods: [
-      { type: "online", start: "2026-03-28", end: "2026-03-31 23:59", versions: ["INVENTORY"] },
+      { type: "online", start: "2026-03-28 11:00", end: "2026-04-14 23:59" },
+      { type: "online", store: "영상통화 이벤트 응모", start: "2026-03-28 11:00", end: "2026-03-31 23:59", versions: ["INVENTORY"] },
     ],
   },
   {
@@ -567,19 +607,22 @@ export const RETAILERS: Retailer[] = [
     currency: "CNY",
     type: "retailer",
     url: "https://www.withfans.com/#/idolDetail?idol_id=6869",
-    shippingFee: null,
-    shippingNote: "확인 필요",
+    shippingFee: 35,
+    shippingNote: "배송비 ¥35",
     products: [
-      { version: "PHOTOBOOK", saleType: "single", price: 0, currency: "CNY", url: "https://www.withfans.com/#/idolDetail?idol_id=6869" },
+      { version: "PHOTOBOOK", saleType: "single", price: 156, currency: "CNY", url: "https://www.withfans.com/#/idolDetail?idol_id=6869" },
+      { version: "ID_PASS", saleType: "random", price: 78, currency: "CNY" },
+      { version: "INVENTORY", saleType: "random", price: 88, currency: "CNY" },
+      { version: "POCAALBUM", saleType: "random", price: 46, currency: "CNY" },
     ],
     benefits: [
       { type: "photocard", name: "이즈위 미공포", description: "미공개 포토카드 5종 중 1종 랜덤", isExclusive: true, versions: ["PHOTOBOOK"], image: "/benefits/withfan.png" },
-      { type: "event", name: "영상통화 이벤트 3차", description: "영상통화 이벤트 3차 (PHOTOBOOK Ver)", isExclusive: false, versions: ["PHOTOBOOK"] },
+      { type: "event", name: "영상통화 이벤트 3차", description: "PHOTOBOOK 구매 시 영상통화 이벤트 응모 (당첨 발표 4/7 18:00 CST, 영통 5/9)", isExclusive: false, versions: ["PHOTOBOOK"] },
     ],
     salePeriods: [
-      { type: "online", start: "2026-04-01", end: "2026-04-04 22:59", versions: ["PHOTOBOOK"] },
+      { type: "online", start: "2026-04-01 11:00", end: "2026-04-04 22:59" },
     ],
-    notes: ["중국 시간 기준 (CST)"],
+    notes: ["중국 시간 기준 (CST)", "미공포 불포함 POCAALBUM 102위안 별도"],
   },
 
   // ═══ 오프라인 / 팝업 ═══
@@ -637,7 +680,11 @@ export const RETAILERS: Retailer[] = [
     benefits: [
       { type: "photocard", name: "Animate 한정 미공포 (패턴C)", description: "미공개 포토카드 5종 (단품 랜덤 1장 / 세트 5장 1세트, 특전 소진 시 종료)", isExclusive: true, versions: ["ID_PASS"], image: "/benefits/animate.png" },
     ],
-    notes: ["일본 가격: 랜덤 ¥2,420 / 세트 ¥12,100 (국내와 동일 특전)"],
+    deadline: "2026-04-13",
+    notes: ["특전 소진 시 조기마감", "일본 가격: 랜덤 ¥2,420 / 세트 ¥12,100 (국내와 동일 특전)"],
+    salePeriods: [
+      { type: "online", start: "2026-03-24 11:00", end: "2026-04-13" },
+    ],
   },
   {
     id: "asterum",

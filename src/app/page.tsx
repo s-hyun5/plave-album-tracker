@@ -5,6 +5,7 @@ import { ALBUM_SPECS, COLLECTION_REQUIREMENTS, AlbumVersion } from "@/data/album
 import { RETAILERS, Retailer, formatPrice, getShippingFee, getShippingDisplay, Currency } from "@/data/retailers";
 import { Purchase, Adjustment, getPurchases, savePurchase, deletePurchase, isPurchased, isBenefitOwned, setBenefitOwned } from "@/lib/purchases";
 import { getSyncCode, setSyncCode, clearSyncCode, createSync, connectSync, pushSync, pullSync, autoPush, autoPull } from "@/lib/sync";
+import { track } from "@vercel/analytics";
 import VersionBadge from "@/components/VersionBadge";
 
 const VERSIONS: AlbumVersion[] = ["PHOTOBOOK", "ID_PASS", "INVENTORY", "POCAALBUM"];
@@ -275,10 +276,13 @@ export default function Dashboard() {
   const toggleCart = useCallback((retailer: Retailer) => {
     setCart((prev) => {
       const exists = prev.find((c) => c.retailerId === retailer.id && c.version === activeTab);
-      if (exists) return prev.filter((c) => !(c.retailerId === retailer.id && c.version === activeTab));
+      if (exists) {
+        track("wishlist_remove", { retailer: retailer.name, version: activeTab });
+        return prev.filter((c) => !(c.retailerId === retailer.id && c.version === activeTab));
+      }
       const sp = getSetPrice(retailer, activeTab);
       if (!sp) return prev;
-      // 세트 상품이 있으면 세트, 없으면 개별(포토북) 또는 개별×5용 랜덤
+      track("wishlist_add", { retailer: retailer.name, version: activeTab });
       const products = retailer.products.filter((p) => p.version === activeTab);
       const hasRealSet = products.some((p) => p.saleType === "set");
       return [...prev, {
@@ -388,8 +392,8 @@ export default function Dashboard() {
             >
               {syncCode ? `🔗 ${syncCode}` : "🔄 동기화"}
             </button>
-            <button onClick={() => setShowBenefitGallery(true)} className="text-xs px-3 py-1.5 rounded border border-border text-muted hover:text-foreground hover:border-muted transition-colors">🃏 미공포</button>
-            <button onClick={() => setShowCalendar(true)} className="text-xs px-3 py-1.5 rounded border border-border text-muted hover:text-foreground hover:border-muted transition-colors">📅 일정</button>
+            <button onClick={() => { setShowBenefitGallery(true); track("open_benefits"); }} className="text-xs px-3 py-1.5 rounded border border-border text-muted hover:text-foreground hover:border-muted transition-colors">🃏 미공포</button>
+            <button onClick={() => { setShowCalendar(true); track("open_calendar"); }} className="text-xs px-3 py-1.5 rounded border border-border text-muted hover:text-foreground hover:border-muted transition-colors">📅 일정</button>
             <a href="https://docs.google.com/spreadsheets/d/1ZoCg8ovvls40kOYZfQqgT7Jk9vuUyP6FSabl7G4Au0U/edit?gid=0#gid=0" target="_blank" rel="noopener noreferrer" className="text-xs px-3 py-1.5 rounded border border-border text-muted hover:text-foreground hover:border-muted transition-colors">📊 음총팀</a>
           </div>
         </div>
@@ -464,7 +468,7 @@ export default function Dashboard() {
                 onClick={async () => {
                   setSyncStatus("생성 중...");
                   const r = await createSync();
-                  if (r.code) { setSyncCodeState(r.code); setSyncStatus("코드 생성 완료!"); }
+                  if (r.code) { setSyncCodeState(r.code); setSyncStatus("코드 생성 완료!"); track("sync_create"); }
                   else setSyncStatus(r.error ?? "실패");
                   setTimeout(() => setSyncStatus(null), 2000);
                 }}
@@ -492,7 +496,7 @@ export default function Dashboard() {
                       if (stored) setBenefitState(JSON.parse(stored));
                       const storedCart = localStorage.getItem("plave-caligo-cart");
                       if (storedCart) setCart(JSON.parse(storedCart));
-                      setSyncStatus("연결 완료!");
+                      setSyncStatus("연결 완료!"); track("sync_connect");
                     } else {
                       setSyncStatus(r.error ?? "실패");
                     }
@@ -960,14 +964,14 @@ export default function Dashboard() {
             </button>
           ))}
           <button
-            onClick={() => setShowBenefitGallery(true)}
+            onClick={() => { setShowBenefitGallery(true); track("open_benefits"); }}
             className="flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors text-muted"
           >
             <span className="text-lg">🃏</span>
             <span className="text-[10px]">미공포</span>
           </button>
           <button
-            onClick={() => setShowCalendar(true)}
+            onClick={() => { setShowCalendar(true); track("open_calendar"); }}
             className="flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors text-muted"
           >
             <span className="text-lg">📅</span>
@@ -1135,6 +1139,7 @@ export default function Dashboard() {
                     notes: purchaseFormNotes,
                   };
                   savePurchase(purchase);
+                  track(isEdit ? "purchase_edit" : "purchase_complete", { retailer: retailer.name, version: purchaseModal.version, amount: finalKRW });
                   if (!isEdit) removeCartItem(purchaseModal.retailerId, purchaseModal.version);
                   reloadPurchases();
                   setPurchaseModal(null);

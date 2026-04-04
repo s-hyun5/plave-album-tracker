@@ -375,7 +375,7 @@ export default function Dashboard() {
             <h1 className="text-xl sm:text-2xl font-bold">앨범 판매처</h1>
             <p className="text-xs sm:text-sm text-muted mt-0.5">체크박스로 위시리스트 담기 · 카드 클릭으로 상세 보기</p>
           </div>
-          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
             <button
               onClick={() => setShowSync(!showSync)}
               className={`text-[11px] sm:text-xs px-2 sm:px-3 py-1.5 rounded border transition-colors ${syncCode ? "border-green-500/30 text-green-600 hover:border-green-500" : "border-border text-muted hover:text-foreground hover:border-muted"}`}
@@ -398,18 +398,18 @@ export default function Dashboard() {
               href="https://docs.google.com/spreadsheets/d/1ZoCg8ovvls40kOYZfQqgT7Jk9vuUyP6FSabl7G4Au0U/edit?gid=0#gid=0"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[11px] sm:text-xs px-2 sm:px-3 py-1.5 rounded border border-border text-muted hover:text-foreground hover:border-muted transition-colors hidden sm:block"
+              className="text-[11px] sm:text-xs px-2 sm:px-3 py-1.5 rounded border border-border text-muted hover:text-foreground hover:border-muted transition-colors"
             >
-              음총팀 예판 정리본
+              📊 음총팀
             </a>
           </div>
         </div>
-        <p className="text-[10px] text-muted">
-          📋 판매처 정보: {LAST_SYNC_DATE} 기준{lastSaved && <> · 🕐 마지막 저장: {new Date(lastSaved).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}</>}
+        <div className="text-[10px] text-muted space-y-0.5">
+          <p>📋 판매처 정보: {LAST_SYNC_DATE} 기준{lastSaved && <> · 🕐 저장: {new Date(lastSaved).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}</>}</p>
           {exchangeRate.updatedAt && (
-            <> · 💱 환율: {new Date(exchangeRate.updatedAt).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })} 기준 (1 USD = {exchangeRate.rates.USD.toLocaleString()}원)</>
+            <p>💱 환율: {new Date(exchangeRate.updatedAt).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })} 기준 (1 USD = {exchangeRate.rates.USD.toLocaleString()}원)</p>
           )}
-        </p>
+        </div>
         {sheetUpdate.hasUpdate && (
           <div className="flex items-center gap-2 text-xs bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-1.5">
             <span>🔔 음총팀 정리본이 업데이트됨 ({sheetUpdate.sheetDate})</span>
@@ -785,7 +785,7 @@ export default function Dashboard() {
                     return (
                       <div
                         key={`${item.retailerId}-${item.version}`}
-                        className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-background cursor-pointer transition-colors group"
+                        className="rounded-md px-2 py-2 hover:bg-background cursor-pointer transition-colors group space-y-1"
                         onClick={() => {
                           setActiveTab(item.version);
                           setExpandedRetailer(item.retailerId);
@@ -795,39 +795,44 @@ export default function Dashboard() {
                           }, 100);
                         }}
                       >
-                        <VersionBadge version={item.version} />
-                        <span className="text-xs flex-1 truncate">{retailer.name}</span>
-                        {hasExclusive && (
-                          <span className="text-[10px] px-1 py-0.5 rounded-full" style={{ color: "var(--exclusive)", backgroundColor: "var(--exclusive-bg)" }}>미공포</span>
-                        )}
-                        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                        {/* Row 1: name + badges */}
+                        <div className="flex items-center gap-1.5">
+                          <VersionBadge version={item.version} />
+                          <span className="text-xs flex-1 truncate">{retailer.name}</span>
+                          {hasExclusive && (
+                            <span className="text-[10px] px-1 py-0.5 rounded-full" style={{ color: "var(--exclusive)", backgroundColor: "var(--exclusive-bg)" }}>미공포</span>
+                          )}
                           <button
-                            onClick={() => item.quantity > 1 && updateCartItem(item.retailerId, item.version, { quantity: item.quantity - 1 })}
-                            className="w-5 h-5 rounded border border-border text-xs flex items-center justify-center hover:bg-background"
-                          >−</button>
-                          <span className="text-xs w-4 text-center">{item.quantity}</span>
-                          <button
-                            onClick={() => updateCartItem(item.retailerId, item.version, { quantity: item.quantity + 1 })}
-                            className="w-5 h-5 rounded border border-border text-xs flex items-center justify-center hover:bg-background"
-                          >+</button>
+                            onClick={(e) => { e.stopPropagation(); removeCartItem(item.retailerId, item.version); }}
+                            className="text-muted hover:text-foreground text-sm px-1"
+                          >×</button>
                         </div>
-                        <span className="text-[11px] text-muted">
-                          {cur !== "KRW" ? formatKRWWithOriginal(displayTotal, cur, exchangeRate.rates) : formatPrice(displayTotal, "KRW")}
-                        </span>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setPurchaseFormQty(item.quantity);
-                            setPurchaseFormAdj([]);
-                            setPurchaseFormNotes("");
-                            setPurchaseModal({ retailerId: item.retailerId, version: item.version });
-                          }}
-                          className="text-[10px] px-1.5 py-0.5 rounded border border-accent text-accent hover:bg-accent/10 transition-opacity"
-                        >구매완료</button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); removeCartItem(item.retailerId, item.version); }}
-                          className="text-muted hover:text-foreground text-sm px-1"
-                        >×</button>
+                        {/* Row 2: quantity + price + purchase button */}
+                        <div className="flex items-center gap-2 pl-1" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => item.quantity > 1 && updateCartItem(item.retailerId, item.version, { quantity: item.quantity - 1 })}
+                              className="w-5 h-5 rounded border border-border text-xs flex items-center justify-center hover:bg-background"
+                            >−</button>
+                            <span className="text-xs w-4 text-center">{item.quantity}</span>
+                            <button
+                              onClick={() => updateCartItem(item.retailerId, item.version, { quantity: item.quantity + 1 })}
+                              className="w-5 h-5 rounded border border-border text-xs flex items-center justify-center hover:bg-background"
+                            >+</button>
+                          </div>
+                          <span className="text-[11px] text-muted flex-1">
+                            {cur !== "KRW" ? formatKRWWithOriginal(displayTotal, cur, exchangeRate.rates) : formatPrice(displayTotal, "KRW")}
+                          </span>
+                          <button
+                            onClick={() => {
+                              setPurchaseFormQty(item.quantity);
+                              setPurchaseFormAdj([]);
+                              setPurchaseFormNotes("");
+                              setPurchaseModal({ retailerId: item.retailerId, version: item.version });
+                            }}
+                            className="text-[10px] px-1.5 py-0.5 rounded border border-accent text-accent hover:bg-accent/10"
+                          >구매완료</button>
+                        </div>
                       </div>
                     );
                   })}

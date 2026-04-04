@@ -375,34 +375,28 @@ export default function Dashboard() {
             <h1 className="text-xl sm:text-2xl font-bold">앨범 판매처</h1>
             <p className="text-xs sm:text-sm text-muted mt-0.5">체크박스로 위시리스트 담기 · 카드 클릭으로 상세 보기</p>
           </div>
-          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+          {/* Desktop: buttons next to title */}
+          <div className="hidden sm:flex items-center gap-2 flex-wrap">
             <button
               onClick={() => setShowSync(!showSync)}
-              className={`text-[11px] sm:text-xs px-2 sm:px-3 py-1.5 rounded border transition-colors ${syncCode ? "border-green-500/30 text-green-600 hover:border-green-500" : "border-border text-muted hover:text-foreground hover:border-muted"}`}
+              className={`text-xs px-3 py-1.5 rounded border transition-colors ${syncCode ? "border-green-500/30 text-green-600 hover:border-green-500" : "border-border text-muted hover:text-foreground hover:border-muted"}`}
             >
               {syncCode ? `🔗 ${syncCode}` : "🔄 동기화"}
             </button>
-            <button
-              onClick={() => setShowBenefitGallery(true)}
-              className="text-[11px] sm:text-xs px-2 sm:px-3 py-1.5 rounded border border-border text-muted hover:text-foreground hover:border-muted transition-colors"
-            >
-              🃏 미공포
-            </button>
-            <button
-              onClick={() => setShowCalendar(true)}
-              className="text-[11px] sm:text-xs px-2 sm:px-3 py-1.5 rounded border border-border text-muted hover:text-foreground hover:border-muted transition-colors"
-            >
-              📅 일정
-            </button>
-            <a
-              href="https://docs.google.com/spreadsheets/d/1ZoCg8ovvls40kOYZfQqgT7Jk9vuUyP6FSabl7G4Au0U/edit?gid=0#gid=0"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[11px] sm:text-xs px-2 sm:px-3 py-1.5 rounded border border-border text-muted hover:text-foreground hover:border-muted transition-colors"
-            >
-              📊 음총팀
-            </a>
+            <button onClick={() => setShowBenefitGallery(true)} className="text-xs px-3 py-1.5 rounded border border-border text-muted hover:text-foreground hover:border-muted transition-colors">🃏 미공포</button>
+            <button onClick={() => setShowCalendar(true)} className="text-xs px-3 py-1.5 rounded border border-border text-muted hover:text-foreground hover:border-muted transition-colors">📅 일정</button>
+            <a href="https://docs.google.com/spreadsheets/d/1ZoCg8ovvls40kOYZfQqgT7Jk9vuUyP6FSabl7G4Au0U/edit?gid=0#gid=0" target="_blank" rel="noopener noreferrer" className="text-xs px-3 py-1.5 rounded border border-border text-muted hover:text-foreground hover:border-muted transition-colors">📊 음총팀</a>
           </div>
+        </div>
+        {/* Mobile: sync + sheet only */}
+        <div className="flex sm:hidden items-center gap-1.5 flex-wrap">
+          <button
+            onClick={() => setShowSync(!showSync)}
+            className={`text-[11px] px-2 py-1 rounded border transition-colors ${syncCode ? "border-green-500/30 text-green-600 hover:border-green-500" : "border-border text-muted hover:text-foreground hover:border-muted"}`}
+          >
+            {syncCode ? `🔗 ${syncCode}` : "🔄 동기화"}
+          </button>
+          <a href="https://docs.google.com/spreadsheets/d/1ZoCg8ovvls40kOYZfQqgT7Jk9vuUyP6FSabl7G4Au0U/edit?gid=0#gid=0" target="_blank" rel="noopener noreferrer" className="text-[11px] px-2 py-1 rounded border border-border text-muted hover:text-foreground hover:border-muted transition-colors">📊 음총팀</a>
         </div>
         <div className="text-[10px] text-muted space-y-0.5">
           <p>📋 판매처 정보: {LAST_SYNC_DATE} 기준{lastSaved && <> · 🕐 저장: {new Date(lastSaved).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}</>}</p>
@@ -516,7 +510,7 @@ export default function Dashboard() {
           return (
             <button
               key={v}
-              onClick={() => setActiveTab(v)}
+              onClick={() => { setActiveTab(v); setMobilePanel("list"); }}
               className={`rounded-lg p-2 sm:p-3 border text-left transition-all ${
                 activeTab === v ? "shadow-sm" : "border-border hover:border-muted bg-card"
               }`}
@@ -772,6 +766,7 @@ export default function Dashboard() {
               {cart.length === 0 ? (
                 <p className="text-xs text-muted py-3 text-center">체크박스를 눌러 위시리스트에 담아보세요</p>
               ) : (
+                <>
                 <div className="space-y-1">
                   {cart.map((item) => {
                     const retailer = RETAILERS.find((r) => r.id === item.retailerId);
@@ -802,12 +797,8 @@ export default function Dashboard() {
                           {hasExclusive && (
                             <span className="text-[10px] px-1 py-0.5 rounded-full" style={{ color: "var(--exclusive)", backgroundColor: "var(--exclusive-bg)" }}>미공포</span>
                           )}
-                          <button
-                            onClick={(e) => { e.stopPropagation(); removeCartItem(item.retailerId, item.version); }}
-                            className="text-muted hover:text-foreground text-sm px-1"
-                          >×</button>
                         </div>
-                        {/* Row 2: quantity + price + purchase button */}
+                        {/* Row 2: quantity + price */}
                         <div className="flex items-center gap-2 pl-1" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center gap-1">
                             <button
@@ -830,82 +821,27 @@ export default function Dashboard() {
                               setPurchaseFormNotes("");
                               setPurchaseModal({ retailerId: item.retailerId, version: item.version });
                             }}
-                            className="text-[10px] px-1.5 py-0.5 rounded border border-accent text-accent hover:bg-accent/10"
-                          >구매완료</button>
+                            className="text-xs px-2.5 py-1 rounded bg-accent text-white hover:opacity-90"
+                          >구매체크</button>
+                          <button
+                            onClick={() => {
+                              if (confirm(`${retailer.name}을(를) 위시리스트에서 삭제할까요?`)) {
+                                removeCartItem(item.retailerId, item.version);
+                              }
+                            }}
+                            className="text-xs px-2.5 py-1 rounded border border-border text-muted hover:text-red-500 hover:border-red-300"
+                          >삭제</button>
                         </div>
                       </div>
                     );
                   })}
                 </div>
+                <div className="border-t border-border pt-2 mt-2 flex justify-between items-center">
+                  <span className="text-xs text-muted">합계</span>
+                  <span className="text-sm font-bold text-accent">{formatPrice(cartTotalKRW, "KRW")}</span>
+                </div>
+                </>
               )}
-            </div>
-
-            {/* 미공포 현황 — 압축 그리드 */}
-            <div className={`bg-card rounded-lg border border-border p-4 ${mobilePanel !== "benefits" && mobilePanel !== "list" ? "hidden lg:block" : ""}`}>
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="font-semibold text-sm">미공포 현황</h2>
-                <span className="text-xs text-muted">
-                  {allExclusiveBenefits.filter(({ retailerId }) => purchases.some((p) => p.retailerId === retailerId) || cart.some((c) => c.retailerId === retailerId)).length}
-                  /{allExclusiveBenefits.length}
-                </span>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                {allExclusiveBenefits.map(({ retailerId, retailerName, benefit }) => {
-                  const purchaseCount = purchases.filter((p) => p.retailerId === retailerId).reduce((sum, p) => sum + (p.saleType === "set" ? 5 * p.quantity : p.quantity), 0);
-                  const cartCount = cart.filter((c) => c.retailerId === retailerId).reduce((sum, c) => sum + (c.saleType === "set" ? 5 * c.quantity : c.quantity), 0);
-                  const totalCount = purchaseCount + cartCount;
-                  const isPurchased = purchaseCount > 0;
-                  const isInCart = cartCount > 0;
-
-                  return (
-                    <div
-                      key={`${retailerId}-${benefit.name}`}
-                      className={`relative flex items-center gap-1.5 rounded-md px-2 py-1.5 transition-all ${
-                        totalCount > 0 ? "" : "opacity-35"
-                      }`}
-                      style={isInCart && !isPurchased ? { backgroundColor: "var(--exclusive-bg)" } : undefined}
-                    >
-                      <div className={`w-3.5 h-3.5 rounded border flex-shrink-0 flex items-center justify-center transition-colors ${
-                        isPurchased ? "bg-accent border-accent text-white" : "border-border"
-                      }`}>
-                        {isPurchased && <span style={{ fontSize: 9 }}>✓</span>}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-medium truncate leading-tight">{retailerName}</p>
-                      </div>
-                      {totalCount > 0 && (
-                        <span className="text-xs flex-shrink-0 leading-none" style={{ color: isPurchased ? "var(--accent)" : "var(--exclusive)", fontSize: 10 }}>
-                          {totalCount}장
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* 드볼 진행도 */}
-            <div className={`bg-card rounded-lg border border-border p-4 ${mobilePanel !== "benefits" && mobilePanel !== "list" ? "hidden lg:block" : ""}`}>
-              <h2 className="font-semibold text-sm mb-3">드볼 진행도</h2>
-              <div className="space-y-2">
-                {dbolRequirements.map((req) => {
-                  const spec = ALBUM_SPECS.find((a) => a.version === req.version)!;
-                  const pct = Math.min(100, (req.current / req.minAlbums) * 100);
-                  return (
-                    <div key={req.version}>
-                      <div className="flex justify-between text-xs mb-1">
-                        <span style={{ color: spec.color }}>{spec.label}</span>
-                        <span className={req.met ? "text-accent font-medium" : "text-muted"}>
-                          {req.current}/{req.minAlbums}장
-                        </span>
-                      </div>
-                      <div className="h-1.5 bg-border rounded-full overflow-hidden">
-                        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: req.met ? "var(--accent)" : spec.color }} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
             </div>
 
             {/* 구매 내역 */}
@@ -971,6 +907,30 @@ export default function Dashboard() {
                 </div>
               </div>
             )}
+
+            {/* 드볼 진행도 */}
+            <div className={`bg-card rounded-lg border border-border p-4 ${mobilePanel !== "purchases" && mobilePanel !== "list" ? "hidden lg:block" : ""}`}>
+              <h2 className="font-semibold text-sm mb-3">드볼 진행도</h2>
+              <div className="space-y-2">
+                {dbolRequirements.map((req) => {
+                  const spec = ALBUM_SPECS.find((a) => a.version === req.version)!;
+                  const pct = Math.min(100, (req.current / req.minAlbums) * 100);
+                  return (
+                    <div key={req.version}>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span style={{ color: spec.color }}>{spec.label}</span>
+                        <span className={req.met ? "text-accent font-medium" : "text-muted"}>
+                          {req.current}/{req.minAlbums}장
+                        </span>
+                      </div>
+                      <div className="h-1.5 bg-border rounded-full overflow-hidden">
+                        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: req.met ? "var(--accent)" : spec.color }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -981,7 +941,6 @@ export default function Dashboard() {
           {([
             ["list", "판매처", "🏪"],
             ["cart", "위시리스트", "💜"],
-            ["benefits", "미공포", "🃏"],
             ["purchases", "구매내역", "📦"],
           ] as const).map(([key, label, icon]) => (
             <button
@@ -995,6 +954,13 @@ export default function Dashboard() {
               <span className="text-[10px]">{label}{key === "cart" && cart.length > 0 ? ` (${cart.length})` : ""}</span>
             </button>
           ))}
+          <button
+            onClick={() => setShowBenefitGallery(true)}
+            className="flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors text-muted"
+          >
+            <span className="text-lg">🃏</span>
+            <span className="text-[10px]">미공포</span>
+          </button>
           <button
             onClick={() => setShowCalendar(true)}
             className="flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors text-muted"
@@ -1205,7 +1171,7 @@ export default function Dashboard() {
                   <div
                     key={benefitKey}
                     className={`rounded-xl border overflow-hidden transition-all cursor-pointer ${
-                      isSelected ? "border-accent/50" : isPurchased ? "border-accent/30" : isInCart ? "border-amber-500/30" : "border-border"
+                      isSelected ? "border-green-500 border-[3px]" : isPurchased ? "border-green-500 border-[3px]" : isInCart ? "border-amber-400/60 border-[3px]" : "border-border"
                     }`}
                     onClick={() => setExpandedBenefit(isSelected ? null : benefitKey)}
                   >
@@ -1222,7 +1188,7 @@ export default function Dashboard() {
                       )}
                       {/* Purchased checkmark overlay */}
                       {isPurchased && !isSelected && (
-                        <div className="absolute top-2 right-2 w-7 h-7 rounded-full bg-accent flex items-center justify-center shadow-lg">
+                        <div className="absolute top-2 right-2 w-7 h-7 rounded-full bg-green-500 flex items-center justify-center shadow-lg">
                           <span className="text-white text-sm">✓</span>
                         </div>
                       )}
@@ -1235,8 +1201,8 @@ export default function Dashboard() {
                               <p className="text-white/70 text-[10px]">{versionLabel}{deadlineStr ? ` · ~${deadlineStr.split(" ")[0].slice(5)}` : ""}</p>
                             </div>
                             <div className="flex gap-1">
-                              {isPurchased && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-accent text-white font-medium">구매완료</span>}
-                              {isInCart && !isPurchased && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-white/20 text-white">위시</span>}
+                              {isPurchased && <span className="text-xs px-2.5 py-1 rounded-full bg-green-500 text-white font-medium">구매완료</span>}
+                              {isInCart && !isPurchased && <span className="text-xs px-2.5 py-1 rounded-full bg-amber-500 text-white font-medium">위시</span>}
                             </div>
                           </div>
                         </div>
@@ -1249,7 +1215,7 @@ export default function Dashboard() {
                           <span className="text-sm font-bold">{retailerName}</span>
                           {versionLabel && <span className="text-[10px] px-1.5 py-0.5 rounded bg-border text-muted">{versionLabel}</span>}
                           {deadlineStr && <span className="text-[10px] text-muted">~{deadlineStr.split(" ")[0].slice(5)}</span>}
-                          {isPurchased && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-accent/15 text-accent">구매완료</span>}
+                          {isPurchased && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-green-500/15 text-green-600">구매완료</span>}
                           {isInCart && !isPurchased && <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: "var(--exclusive-bg)", color: "var(--exclusive)" }}>위시리스트</span>}
                         </div>
                         <p className="text-xs font-medium" style={{ color: "var(--exclusive)" }}>{benefit.name}</p>

@@ -158,6 +158,7 @@ export default function Dashboard() {
   const [sortBy, setSortBy] = useState<"price" | "deadline" | "exclusive">("exclusive");
   const [syncCode, setSyncCodeState] = useState<string | null>(null);
   const [syncInput, setSyncInput] = useState("");
+  const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
   const [showSync, setShowSync] = useState(false);
   const exchangeRate = useExchangeRates();
@@ -167,6 +168,7 @@ export default function Dashboard() {
   useEffect(() => {
     const load = async () => {
       setSyncCodeState(getSyncCode());
+      setLastSaved(localStorage.getItem("plave-caligo-last-saved"));
       // 서버에서 먼저 가져오기 (동기화 코드 있으면)
       const pulled = await autoPull();
       // localStorage에서 로드 (pull 성공하면 이미 업데이트됨)
@@ -403,7 +405,7 @@ export default function Dashboard() {
           </div>
         </div>
         <p className="text-[10px] text-muted">
-          📋 판매처 정보: {LAST_SYNC_DATE} 기준 · 🕐 마지막 저장: {(() => { const t = localStorage.getItem("plave-caligo-last-saved"); return t ? new Date(t).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "없음"; })()}
+          📋 판매처 정보: {LAST_SYNC_DATE} 기준{lastSaved && <> · 🕐 마지막 저장: {new Date(lastSaved).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}</>}
           {exchangeRate.updatedAt && (
             <> · 💱 환율: {new Date(exchangeRate.updatedAt).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })} 기준 (1 USD = {exchangeRate.rates.USD.toLocaleString()}원)</>
           )}
@@ -445,7 +447,7 @@ export default function Dashboard() {
                 onClick={async () => {
                   setSyncStatus("저장 중...");
                   const r = await pushSync();
-                  if (r.success) localStorage.setItem("plave-caligo-last-saved", new Date().toISOString());
+                  if (r.success) { const now = new Date().toISOString(); localStorage.setItem("plave-caligo-last-saved", now); setLastSaved(now); }
                   setSyncStatus(r.success ? "저장 완료!" : r.error ?? "실패");
                   setTimeout(() => setSyncStatus(null), 2000);
                 }}

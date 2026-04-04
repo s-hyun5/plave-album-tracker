@@ -176,7 +176,12 @@ export default function Dashboard() {
       const stored = localStorage.getItem("plave-caligo-benefits");
       if (stored) setBenefitState(JSON.parse(stored));
       const storedCart = localStorage.getItem("plave-caligo-cart");
-      if (storedCart) setCart(JSON.parse(storedCart));
+      if (storedCart) {
+        const parsed = JSON.parse(storedCart);
+        const cleaned = parsed.filter((c: CartItem) => RETAILERS.some((r) => r.id === c.retailerId));
+        if (cleaned.length !== parsed.length) localStorage.setItem("plave-caligo-cart", JSON.stringify(cleaned));
+        setCart(cleaned);
+      }
       if (pulled) setSyncStatus("동기화 완료");
       setTimeout(() => setSyncStatus(null), 2000);
     };
@@ -526,8 +531,8 @@ export default function Dashboard() {
         })}
       </div>
 
-      {/* Filter + Sort bar */}
-      <div className="flex items-center gap-2 flex-wrap">
+      {/* Filter + Sort bar — 판매처 탭에서만 표시 */}
+      <div className={`flex items-center gap-2 flex-wrap ${mobilePanel !== "list" ? "hidden lg:flex" : ""}`}>
         <div className="flex gap-1 flex-1 min-w-0 overflow-x-auto">
           {([["all", "전체"], ["available", "미구매"], ["cart", "위시리스트"], ["purchased", "구매완료"], ["closed", "마감"]] as const).map(([key, label]) => (
             <button

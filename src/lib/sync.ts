@@ -93,6 +93,26 @@ export async function pushSync(): Promise<{ success: boolean; error?: string }> 
   return { success: true };
 }
 
+// 자동 push (debounced) — 데이터 변경 시 호출
+let pushTimer: ReturnType<typeof setTimeout> | null = null;
+export function autoPush(): void {
+  const code = getSyncCode();
+  if (!code) return;
+  if (pushTimer) clearTimeout(pushTimer);
+  pushTimer = setTimeout(async () => {
+    const r = await pushSync();
+    if (r.success) localStorage.setItem("plave-caligo-last-saved", new Date().toISOString());
+  }, 1000);
+}
+
+// 자동 pull — 페이지 로드 시 호출
+export async function autoPull(): Promise<boolean> {
+  const code = getSyncCode();
+  if (!code) return false;
+  const result = await pullSync();
+  return result.success;
+}
+
 // 서버에서 데이터 다운로드
 export async function pullSync(): Promise<{ success: boolean; error?: string }> {
   const code = getSyncCode();

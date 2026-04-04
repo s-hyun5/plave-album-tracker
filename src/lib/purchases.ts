@@ -2,6 +2,14 @@ import { AlbumVersion } from "@/data/albums";
 import { Currency } from "@/data/retailers";
 
 // ─── 구매 기록 ───
+export interface Adjustment {
+  type: "discount" | "extra";
+  amount: number;
+  currency: Currency;
+  amountKRW: number;
+  note: string;
+}
+
 export interface Purchase {
   id: string;
   retailerId: string;
@@ -9,6 +17,9 @@ export interface Purchase {
   saleType: "random" | "set" | "single";
   quantity: number;
   totalPrice: number;
+  discount: number;
+  extra: number;
+  adjustments?: Adjustment[];
   currency: Currency;
   purchaseDate: string;
   notes: string;

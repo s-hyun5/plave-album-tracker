@@ -608,7 +608,7 @@ export const RETAILERS: Retailer[] = [
     type: "retailer",
     url: "https://www.withfans.com/#/idolDetail?idol_id=6869",
     shippingFee: 35,
-    shippingNote: "배송비 ¥35",
+    shippingNote: "중국 국내 배송 ¥35 (배대지→한국 별도)",
     products: [
       { version: "PHOTOBOOK", saleType: "single", price: 156, currency: "CNY", url: "https://www.withfans.com/#/idolDetail?idol_id=6869" },
       { version: "ID_PASS", saleType: "random", price: 78, currency: "CNY" },

@@ -3,8 +3,8 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { ALBUM_SPECS, COLLECTION_REQUIREMENTS, AlbumVersion } from "@/data/albums";
 import { RETAILERS, Retailer, formatPrice, getShippingFee, getShippingDisplay, Currency } from "@/data/retailers";
-import { Purchase, getPurchases, savePurchase, deletePurchase, isPurchased, isBenefitOwned, setBenefitOwned } from "@/lib/purchases";
-import { getSyncCode, setSyncCode, clearSyncCode, createSync, connectSync, pushSync, pullSync } from "@/lib/sync";
+import { Purchase, Adjustment, getPurchases, savePurchase, deletePurchase, isPurchased, isBenefitOwned, setBenefitOwned } from "@/lib/purchases";
+import { getSyncCode, setSyncCode, clearSyncCode, createSync, connectSync, pushSync, pullSync, autoPush, autoPull } from "@/lib/sync";
 import VersionBadge from "@/components/VersionBadge";
 
 const VERSIONS: AlbumVersion[] = ["PHOTOBOOK", "ID_PASS", "INVENTORY", "POCAALBUM"];
@@ -148,6 +148,12 @@ export default function Dashboard() {
   const [lightboxImg, setLightboxImg] = useState<string | null>(null);
   const [mobilePanel, setMobilePanel] = useState<"list" | "cart" | "benefits" | "purchases">("list");
   const [showCalendar, setShowCalendar] = useState(false);
+  const [showBenefitGallery, setShowBenefitGallery] = useState(false);
+  const [expandedBenefit, setExpandedBenefit] = useState<string | null>(null);
+  const [purchaseModal, setPurchaseModal] = useState<{ retailerId: string; version: AlbumVersion; editId?: string } | null>(null);
+  const [purchaseFormQty, setPurchaseFormQty] = useState(1);
+  const [purchaseFormAdj, setPurchaseFormAdj] = useState<Adjustment[]>([]);
+  const [purchaseFormNotes, setPurchaseFormNotes] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "available" | "cart" | "purchased" | "closed">("all");
   const [sortBy, setSortBy] = useState<"price" | "deadline" | "exclusive">("exclusive");
   const [syncCode, setSyncCodeState] = useState<string | null>(null);
@@ -157,32 +163,52 @@ export default function Dashboard() {
   const exchangeRate = useExchangeRates();
   const sheetUpdate = useSpreadsheetUpdate();
 
-  // Load from localStorage
+  // Load from localStorage + auto pull from server
   useEffect(() => {
-    setPurchases(getPurchases());
-    const stored = localStorage.getItem("plave-caligo-benefits");
-    if (stored) setBenefitState(JSON.parse(stored));
-    const storedCart = localStorage.getItem("plave-caligo-cart");
-    if (storedCart) setCart(JSON.parse(storedCart));
-    setSyncCodeState(getSyncCode());
+    const load = async () => {
+      setSyncCodeState(getSyncCode());
+      // 서버에서 먼저 가져오기 (동기화 코드 있으면)
+      const pulled = await autoPull();
+      // localStorage에서 로드 (pull 성공하면 이미 업데이트됨)
+      setPurchases(getPurchases());
+      const stored = localStorage.getItem("plave-caligo-benefits");
+      if (stored) setBenefitState(JSON.parse(stored));
+      const storedCart = localStorage.getItem("plave-caligo-cart");
+      if (storedCart) setCart(JSON.parse(storedCart));
+      if (pulled) setSyncStatus("동기화 완료");
+      setTimeout(() => setSyncStatus(null), 2000);
+    };
+    load();
   }, []);
 
-  // Save cart to localStorage on change
+  // Save cart to localStorage + auto push
   useEffect(() => {
     if (cart.length > 0 || localStorage.getItem("plave-caligo-cart")) {
       localStorage.setItem("plave-caligo-cart", JSON.stringify(cart));
+      autoPush();
     }
   }, [cart]);
 
-  const reloadPurchases = useCallback(() => setPurchases(getPurchases()), []);
+  const reloadPurchases = useCallback(() => {
+    setPurchases(getPurchases());
+    autoPush();
+  }, []);
 
-  // All exclusive benefits across all retailers
+  // All exclusive benefits across all retailers (deduplicated by image)
   const allExclusiveBenefits = useMemo(() => {
-    return RETAILERS.flatMap((r) =>
+    const all = RETAILERS.flatMap((r) =>
       r.benefits
         .filter((b) => b.isExclusive)
         .map((b) => ({ retailerId: r.id, retailerName: r.name, benefit: b }))
     );
+    const seen = new Set<string>();
+    return all.filter(({ benefit }) => {
+      if (benefit.image) {
+        if (seen.has(benefit.image)) return false;
+        seen.add(benefit.image);
+      }
+      return true;
+    });
   }, []);
 
   // Helper: get deadline for a retailer
@@ -281,8 +307,10 @@ export default function Dashboard() {
   }, [cart]);
 
   const cartTotalKRW = cartItemsWithShipping
-    .filter((c) => c.currency === "KRW")
-    .reduce((s, c) => s + c.itemTotal + (c.shipping ?? 0), 0);
+    .reduce((s, c) => {
+      const itemKRW = toKRW(c.itemTotal + (c.shipping ?? 0), c.currency, exchangeRate.rates);
+      return s + itemKRW;
+    }, 0);
 
   // 드볼 progress (장바구니 + 구매 내역 합산)
   const dbolRequirements = COLLECTION_REQUIREMENTS.map((req) => {
@@ -307,6 +335,8 @@ export default function Dashboard() {
       saleType: cartItem.saleType,
       quantity: cartItem.quantity,
       totalPrice: cartItem.unitPrice * cartItem.quantity + shipping,
+      discount: 0,
+      extra: 0,
       currency: cartItem.currency,
       purchaseDate: new Date().toISOString().slice(0, 10),
       notes: "",
@@ -328,6 +358,7 @@ export default function Dashboard() {
     const current = benefitState[key] ?? false;
     setBenefitOwned(retailerId, benefitName, !current);
     setBenefitState((prev) => ({ ...prev, [key]: !current }));
+    autoPush();
   }, [benefitState]);
 
   const isBenefitChecked = (retailerId: string, benefitName: string) => benefitState[`${retailerId}::${benefitName}`] ?? false;
@@ -340,7 +371,7 @@ export default function Dashboard() {
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <h1 className="text-xl sm:text-2xl font-bold">앨범 판매처</h1>
-            <p className="text-xs sm:text-sm text-muted mt-0.5">체크박스로 장바구니 담기 · 카드 클릭으로 상세 보기</p>
+            <p className="text-xs sm:text-sm text-muted mt-0.5">체크박스로 위시리스트 담기 · 카드 클릭으로 상세 보기</p>
           </div>
           <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
             <button
@@ -348,6 +379,12 @@ export default function Dashboard() {
               className={`text-[11px] sm:text-xs px-2 sm:px-3 py-1.5 rounded border transition-colors ${syncCode ? "border-green-500/30 text-green-600 hover:border-green-500" : "border-border text-muted hover:text-foreground hover:border-muted"}`}
             >
               {syncCode ? `🔗 ${syncCode}` : "🔄 동기화"}
+            </button>
+            <button
+              onClick={() => setShowBenefitGallery(true)}
+              className="text-[11px] sm:text-xs px-2 sm:px-3 py-1.5 rounded border border-border text-muted hover:text-foreground hover:border-muted transition-colors"
+            >
+              🃏 미공포
             </button>
             <button
               onClick={() => setShowCalendar(true)}
@@ -366,7 +403,7 @@ export default function Dashboard() {
           </div>
         </div>
         <p className="text-[10px] text-muted">
-          📋 데이터 동기화: {LAST_SYNC_DATE}
+          📋 판매처 정보: {LAST_SYNC_DATE} 기준 · 🕐 마지막 저장: {(() => { const t = localStorage.getItem("plave-caligo-last-saved"); return t ? new Date(t).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "없음"; })()}
           {exchangeRate.updatedAt && (
             <> · 💱 환율: {new Date(exchangeRate.updatedAt).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })} 기준 (1 USD = {exchangeRate.rates.USD.toLocaleString()}원)</>
           )}
@@ -392,10 +429,10 @@ export default function Dashboard() {
             <h3 className="text-sm font-semibold">기기 간 동기화</h3>
             <button onClick={() => setShowSync(false)} className="text-muted hover:text-foreground text-xs">✕</button>
           </div>
-          <p className="text-xs text-muted">동기화 코드로 장바구니·구매 내역을 다른 기기에서도 사용할 수 있습니다.</p>
 
           {syncCode ? (
-            <div className="space-y-2">
+            <div className="space-y-3">
+              <p className="text-xs text-muted">데이터 변경 시 자동으로 동기화됩니다. 다른 기기에서 아래 코드를 입력하세요.</p>
               <div className="flex items-center gap-2 bg-background rounded px-3 py-2">
                 <span className="text-xs text-muted">내 코드:</span>
                 <span className="font-mono font-bold tracking-widest">{syncCode}</span>
@@ -404,40 +441,24 @@ export default function Dashboard() {
                   className="text-xs text-muted hover:text-foreground ml-auto"
                 >복사</button>
               </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={async () => {
-                    setSyncStatus("업로드 중...");
-                    const r = await pushSync();
-                    setSyncStatus(r.success ? "업로드 완료!" : r.error ?? "실패");
-                    setTimeout(() => setSyncStatus(null), 2000);
-                  }}
-                  className="flex-1 text-xs py-1.5 rounded border border-border hover:border-muted transition-colors"
-                >⬆ 이 기기 → 서버</button>
-                <button
-                  onClick={async () => {
-                    setSyncStatus("다운로드 중...");
-                    const r = await pullSync();
-                    if (r.success) {
-                      setPurchases(getPurchases());
-                      const stored = localStorage.getItem("plave-caligo-benefits");
-                      if (stored) setBenefitState(JSON.parse(stored));
-                      const storedCart = localStorage.getItem("plave-caligo-cart");
-                      if (storedCart) setCart(JSON.parse(storedCart));
-                    }
-                    setSyncStatus(r.success ? "다운로드 완료!" : r.error ?? "실패");
-                    setTimeout(() => setSyncStatus(null), 2000);
-                  }}
-                  className="flex-1 text-xs py-1.5 rounded border border-border hover:border-muted transition-colors"
-                >⬇ 서버 → 이 기기</button>
-              </div>
+              <button
+                onClick={async () => {
+                  setSyncStatus("저장 중...");
+                  const r = await pushSync();
+                  if (r.success) localStorage.setItem("plave-caligo-last-saved", new Date().toISOString());
+                  setSyncStatus(r.success ? "저장 완료!" : r.error ?? "실패");
+                  setTimeout(() => setSyncStatus(null), 2000);
+                }}
+                className="w-full text-xs py-2 rounded border border-border hover:border-muted transition-colors"
+              >수동 저장</button>
               <button
                 onClick={() => { clearSyncCode(); setSyncCodeState(null); setSyncStatus(null); }}
                 className="text-[10px] text-muted hover:text-red-500"
               >연결 해제</button>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-3">
+              <p className="text-xs text-muted">동기화 코드를 생성하면 다른 기기에서도 데이터를 사용할 수 있습니다.</p>
               <button
                 onClick={async () => {
                   setSyncStatus("생성 중...");
@@ -448,11 +469,11 @@ export default function Dashboard() {
                 }}
                 className="w-full text-xs py-2 rounded border border-border hover:border-muted transition-colors"
               >새 동기화 코드 생성</button>
-              <div className="text-xs text-muted text-center">또는</div>
+              <div className="text-xs text-muted text-center">또는 기존 코드 입력</div>
               <div className="flex gap-2">
                 <input
                   type="text"
-                  placeholder="코드 입력 (6자리)"
+                  placeholder="6자리 코드"
                   value={syncInput}
                   onChange={(e) => setSyncInput(e.target.value.toUpperCase())}
                   maxLength={6}
@@ -512,7 +533,7 @@ export default function Dashboard() {
       {/* Filter + Sort bar */}
       <div className="flex items-center gap-2 flex-wrap">
         <div className="flex gap-1 flex-1 min-w-0 overflow-x-auto">
-          {([["all", "전체"], ["available", "미구매"], ["cart", "장바구니"], ["purchased", "구매완료"], ["closed", "마감"]] as const).map(([key, label]) => (
+          {([["all", "전체"], ["available", "미구매"], ["cart", "위시리스트"], ["purchased", "구매완료"], ["closed", "마감"]] as const).map(([key, label]) => (
             <button
               key={key}
               onClick={() => setStatusFilter(key)}
@@ -549,7 +570,7 @@ export default function Dashboard() {
             const totalWithShipping = shipping !== null && shipping > 0 ? displayPrice + shipping : null;
 
             return (
-              <div key={r.id} className={`rounded-lg border overflow-hidden transition-colors ${
+              <div key={r.id} id={`retailer-${r.id}`} className={`rounded-lg border overflow-hidden transition-colors ${
                 purchased ? "border-border bg-card opacity-50" : inCart ? "border-accent bg-accent-light" : "border-border bg-card"
               }`}>
                 {/* Main row */}
@@ -743,76 +764,72 @@ export default function Dashboard() {
         <div className={`w-full lg:w-80 flex-shrink-0 ${mobilePanel === "list" ? "hidden lg:block" : ""}`}>
           <div className="lg:sticky lg:top-16 space-y-4">
 
-            {/* Cart */}
+            {/* Wishlist */}
             <div className={`bg-card rounded-lg border border-border p-4 ${mobilePanel !== "cart" && mobilePanel !== "list" ? "hidden lg:block" : ""}`}>
-              <h2 className="font-semibold text-sm mb-3">장바구니</h2>
+              <h2 className="font-semibold text-sm mb-3">위시리스트</h2>
               {cart.length === 0 ? (
-                <p className="text-xs text-muted py-3 text-center">체크박스를 눌러 담아보세요</p>
+                <p className="text-xs text-muted py-3 text-center">체크박스를 눌러 위시리스트에 담아보세요</p>
               ) : (
-                <>
-                  <div className="space-y-3 mb-3">
-                    {cartItemsWithShipping.map((item) => {
-                      const retailer = RETAILERS.find((r) => r.id === item.retailerId);
-                      if (!retailer) return null;
-                      const products = retailer.products.filter((p) => p.version === item.version);
-                      const hasSet = products.some((p) => p.saleType === "set");
-                      const hasRandom = products.some((p) => p.saleType === "random" || p.saleType === "single");
-
-                      return (
-                        <div key={`${item.retailerId}-${item.version}`} className="border-b border-border pb-2 last:border-0">
-                          <div className="flex items-center justify-between mb-1">
-                            <div className="flex items-center gap-1.5 min-w-0">
-                              <VersionBadge version={item.version} />
-                              <span className="text-xs truncate">{retailer.name}</span>
-                            </div>
-                            <button
-                              onClick={() => removeCartItem(item.retailerId, item.version)}
-                              className="text-muted hover:text-foreground text-sm px-1"
-                            >×</button>
-                          </div>
-                          {/* Sale type + quantity */}
-                          <div className="flex items-center gap-2">
-                            {(hasSet && hasRandom) && (
-                              <select
-                                value={item.saleType}
-                                onChange={(e) => {
-                                  const newType = e.target.value as "set" | "random" | "single";
-                                  const p = products.find((p) => p.saleType === newType) || products.find((p) => p.saleType === "single");
-                                  if (p) updateCartItem(item.retailerId, item.version, { saleType: newType, unitPrice: p.price });
-                                }}
-                                className="text-xs bg-background border border-border rounded px-1.5 py-1"
-                              >
-                                {hasSet && <option value="set">세트</option>}
-                                {hasRandom && <option value={products.find((p) => p.saleType === "random") ? "random" : "single"}>개별</option>}
-                              </select>
-                            )}
-                            <div className="flex items-center gap-1">
-                              <button
-                                onClick={() => item.quantity > 1 && updateCartItem(item.retailerId, item.version, { quantity: item.quantity - 1 })}
-                                className="w-5 h-5 rounded border border-border text-xs flex items-center justify-center hover:bg-background"
-                              >−</button>
-                              <span className="text-xs w-4 text-center">{item.quantity}</span>
-                              <button
-                                onClick={() => updateCartItem(item.retailerId, item.version, { quantity: item.quantity + 1 })}
-                                className="w-5 h-5 rounded border border-border text-xs flex items-center justify-center hover:bg-background"
-                              >+</button>
-                            </div>
-                            <span className="text-xs ml-auto font-medium">
-                              {formatPrice(item.itemTotal + (item.shipping ?? 0), item.currency)}
-                            </span>
-                          </div>
-                          {item.shipping !== null && item.shipping > 0 && (
-                            <p className="text-xs text-muted mt-0.5">배송비 {formatPrice(item.shipping, "KRW")} 포함</p>
-                          )}
+                <div className="space-y-1">
+                  {cart.map((item) => {
+                    const retailer = RETAILERS.find((r) => r.id === item.retailerId);
+                    if (!retailer) return null;
+                    const hasExclusive = retailer.benefits.some((b) => b.isExclusive && (!b.versions || b.versions.includes(item.version)));
+                    const sp = getSetPrice(retailer, item.version);
+                    const itemTotal = sp ? sp.price * item.quantity : 0;
+                    const shipping = sp ? getShippingFee(retailer, itemTotal) : null;
+                    const displayTotal = itemTotal + (shipping ?? 0);
+                    const cur = sp?.currency ?? "KRW";
+                    return (
+                      <div
+                        key={`${item.retailerId}-${item.version}`}
+                        className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-background cursor-pointer transition-colors group"
+                        onClick={() => {
+                          setActiveTab(item.version);
+                          setExpandedRetailer(item.retailerId);
+                          setMobilePanel("list");
+                          setTimeout(() => {
+                            document.getElementById(`retailer-${item.retailerId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+                          }, 100);
+                        }}
+                      >
+                        <VersionBadge version={item.version} />
+                        <span className="text-xs flex-1 truncate">{retailer.name}</span>
+                        {hasExclusive && (
+                          <span className="text-[10px] px-1 py-0.5 rounded-full" style={{ color: "var(--exclusive)", backgroundColor: "var(--exclusive-bg)" }}>미공포</span>
+                        )}
+                        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={() => item.quantity > 1 && updateCartItem(item.retailerId, item.version, { quantity: item.quantity - 1 })}
+                            className="w-5 h-5 rounded border border-border text-xs flex items-center justify-center hover:bg-background"
+                          >−</button>
+                          <span className="text-xs w-4 text-center">{item.quantity}</span>
+                          <button
+                            onClick={() => updateCartItem(item.retailerId, item.version, { quantity: item.quantity + 1 })}
+                            className="w-5 h-5 rounded border border-border text-xs flex items-center justify-center hover:bg-background"
+                          >+</button>
                         </div>
-                      );
-                    })}
-                  </div>
-                  <div className="border-t border-border pt-3 flex justify-between items-center">
-                    <span className="text-sm font-medium">합계 (KRW)</span>
-                    <span className="text-lg font-bold text-accent">{cartTotalKRW.toLocaleString()}원</span>
-                  </div>
-                </>
+                        <span className="text-[11px] text-muted">
+                          {cur !== "KRW" ? formatKRWWithOriginal(displayTotal, cur, exchangeRate.rates) : formatPrice(displayTotal, "KRW")}
+                        </span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPurchaseFormQty(item.quantity);
+                            setPurchaseFormAdj([]);
+                            setPurchaseFormNotes("");
+                            setPurchaseModal({ retailerId: item.retailerId, version: item.version });
+                          }}
+                          className="text-[10px] px-1.5 py-0.5 rounded border border-accent text-accent hover:bg-accent/10 transition-opacity"
+                        >구매완료</button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); removeCartItem(item.retailerId, item.version); }}
+                          className="text-muted hover:text-foreground text-sm px-1"
+                        >×</button>
+                      </div>
+                    );
+                  })}
+                </div>
               )}
             </div>
 
@@ -892,21 +909,58 @@ export default function Dashboard() {
                   {purchases.map((p) => {
                     const retailer = RETAILERS.find((r) => r.id === p.retailerId);
                     return (
-                      <div key={p.id} className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <VersionBadge version={p.version} />
-                          <span className="text-xs truncate">{retailer?.name}</span>
+                      <div
+                        key={p.id}
+                        className="border-b border-border pb-2 last:border-0 cursor-pointer hover:bg-background rounded px-1 -mx-1 transition-colors"
+                        onClick={() => {
+                          setPurchaseFormQty(p.quantity);
+                          setPurchaseFormAdj(p.adjustments ?? [
+                            ...(p.discount > 0 ? [{ type: "discount" as const, amount: p.discount, currency: "KRW" as Currency, amountKRW: p.discount, note: "" }] : []),
+                            ...((p.extra ?? 0) > 0 ? [{ type: "extra" as const, amount: p.extra ?? 0, currency: "KRW" as Currency, amountKRW: p.extra ?? 0, note: "" }] : []),
+                          ]);
+                          setPurchaseFormNotes(p.notes);
+                          setPurchaseModal({ retailerId: p.retailerId, version: p.version, editId: p.id });
+                        }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <VersionBadge version={p.version} />
+                            <span className="text-xs truncate">{retailer?.name}</span>
+                            <span className="text-[10px] text-muted">×{p.quantity}</span>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className="text-xs font-medium">{formatPrice(p.totalPrice, "KRW")}</span>
+                            <button onClick={(e) => { e.stopPropagation(); handleDeletePurchase(p.id); }} className="text-xs text-muted hover:text-foreground">×</button>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <span className="text-xs font-medium">{formatPrice(p.totalPrice, p.currency)}</span>
-                          <button onClick={() => handleDeletePurchase(p.id)} className="text-xs text-muted hover:text-foreground">×</button>
-                        </div>
+                        {(p.adjustments?.length || p.discount > 0 || (p.extra ?? 0) > 0 || p.notes) && (
+                          <div className="flex items-center gap-2 mt-0.5 ml-7 flex-wrap">
+                            {(p.adjustments ?? []).filter((a) => a.type === "discount").map((a, i) => (
+                              <span key={`d${i}`} className="text-[10px] text-red-500">-{formatPrice(a.amountKRW, "KRW")}{a.note ? ` ${a.note}` : ""}</span>
+                            ))}
+                            {(p.adjustments ?? []).filter((a) => a.type === "extra").map((a, i) => (
+                              <span key={`e${i}`} className="text-[10px] text-amber-600">+{formatPrice(a.amountKRW, "KRW")}{a.note ? ` ${a.note}` : ""}</span>
+                            ))}
+                            {!p.adjustments && p.discount > 0 && <span className="text-[10px] text-red-500">-{formatPrice(p.discount, "KRW")} 할인</span>}
+                            {!p.adjustments && (p.extra ?? 0) > 0 && <span className="text-[10px] text-amber-600">+{formatPrice(p.extra ?? 0, "KRW")} 추가</span>}
+                            {p.notes && <span className="text-[10px] text-muted">{p.notes}</span>}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
                 </div>
-                <div className="border-t border-border pt-2 mt-2 text-xs text-muted">
-                  총 {formatPrice(purchases.filter((p) => p.currency === "KRW").reduce((s, p) => s + p.totalPrice, 0), "KRW")} 지출
+                <div className="border-t border-border pt-2 mt-2 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-muted">총 지출</span>
+                    <span className="font-medium">{formatPrice(purchases.reduce((s, p) => s + toKRW(p.totalPrice, p.currency, exchangeRate.rates), 0), "KRW")}</span>
+                  </div>
+                  {purchases.some((p) => p.discount > 0) && (
+                    <div className="flex justify-between text-red-500">
+                      <span>총 할인</span>
+                      <span>-{formatPrice(purchases.reduce((s, p) => s + toKRW(p.discount ?? 0, p.currency, exchangeRate.rates), 0), "KRW")}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -919,7 +973,7 @@ export default function Dashboard() {
         <div className="flex justify-around items-center h-14 max-w-lg mx-auto">
           {([
             ["list", "판매처", "🏪"],
-            ["cart", "장바구니", "🛒"],
+            ["cart", "위시리스트", "💜"],
             ["benefits", "미공포", "🃏"],
             ["purchases", "구매내역", "📦"],
           ] as const).map(([key, label, icon]) => (
@@ -943,6 +997,265 @@ export default function Dashboard() {
           </button>
         </div>
       </div>
+
+      {/* Purchase modal */}
+      {purchaseModal && (() => {
+        const retailer = RETAILERS.find((r) => r.id === purchaseModal.retailerId);
+        if (!retailer) return null;
+        const isEdit = !!purchaseModal.editId;
+        const existingPurchase = isEdit ? purchases.find((p) => p.id === purchaseModal.editId) : null;
+        const cartItem = cart.find((c) => c.retailerId === purchaseModal.retailerId && c.version === purchaseModal.version);
+        const saleType = existingPurchase?.saleType ?? cartItem?.saleType ?? "random";
+        const sp = getSetPrice(retailer, purchaseModal.version);
+        const cur = sp?.currency ?? "KRW";
+        const itemTotal = sp ? sp.price * purchaseFormQty : 0;
+        const shipping = sp ? getShippingFee(retailer, itemTotal) : null;
+        const baseKRW = toKRW(itemTotal + (shipping ?? 0), cur, exchangeRate.rates);
+        const totalDiscountKRW = purchaseFormAdj.filter((a) => a.type === "discount").reduce((s, a) => s + a.amountKRW, 0);
+        const totalExtraKRW = purchaseFormAdj.filter((a) => a.type === "extra").reduce((s, a) => s + a.amountKRW, 0);
+        const finalKRW = baseKRW - totalDiscountKRW + totalExtraKRW;
+        const curOpts: { value: Currency; label: string }[] = [
+          { value: "KRW", label: "KRW (₩)" }, { value: "USD", label: "USD ($)" },
+          { value: "JPY", label: "JPY (엔)" }, { value: "TWD", label: "TWD (대만)" }, { value: "CNY", label: "CNY (위안)" },
+        ];
+        const addAdj = (type: "discount" | "extra") => {
+          setPurchaseFormAdj((prev) => [...prev, { type, amount: 0, currency: "KRW", amountKRW: 0, note: "" }]);
+        };
+        const updateAdj = (idx: number, field: string, val: string | number) => {
+          setPurchaseFormAdj((prev) => prev.map((a, i) => {
+            if (i !== idx) return a;
+            const updated = { ...a, [field]: val };
+            if (field === "amount" || field === "currency") {
+              const amt = field === "amount" ? Number(val) || 0 : a.amount;
+              const c = field === "currency" ? val as Currency : a.currency;
+              updated.amount = amt;
+              updated.currency = c;
+              updated.amountKRW = toKRW(amt, c, exchangeRate.rates);
+            }
+            return updated;
+          }));
+        };
+        const removeAdj = (idx: number) => setPurchaseFormAdj((prev) => prev.filter((_, i) => i !== idx));
+        return (
+          <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setPurchaseModal(null)}>
+            <div className="bg-card rounded-xl border border-border p-5 w-full max-w-sm max-h-[85vh] overflow-y-auto space-y-4" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold">{isEdit ? "구매 내역 수정" : "구매 완료"}</h3>
+                <button onClick={() => setPurchaseModal(null)} className="text-muted hover:text-foreground">✕</button>
+              </div>
+              <div className="text-sm">
+                <span className="font-medium">{retailer.name}</span>
+                <span className="text-muted ml-2">{ALBUM_SPECS.find((a) => a.version === purchaseModal.version)?.label}</span>
+              </div>
+              {/* Quantity */}
+              <div className="space-y-1">
+                <label className="text-xs text-muted">수량</label>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => purchaseFormQty > 1 && setPurchaseFormQty((q) => q - 1)} className="w-7 h-7 rounded border border-border text-sm flex items-center justify-center hover:bg-background">−</button>
+                  <span className="text-sm font-medium w-6 text-center">{purchaseFormQty}</span>
+                  <button onClick={() => setPurchaseFormQty((q) => q + 1)} className="w-7 h-7 rounded border border-border text-sm flex items-center justify-center hover:bg-background">+</button>
+                  <span className="text-xs text-muted ml-auto">
+                    {cur !== "KRW" ? formatKRWWithOriginal(itemTotal, cur, exchangeRate.rates) : formatPrice(itemTotal, "KRW")}
+                  </span>
+                </div>
+              </div>
+              {/* Adjustments */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs text-muted">할인 / 추가금액</label>
+                  <div className="flex gap-1">
+                    <button onClick={() => addAdj("discount")} className="text-[10px] px-2 py-0.5 rounded border border-red-300 text-red-500 hover:bg-red-50">+ 할인</button>
+                    <button onClick={() => addAdj("extra")} className="text-[10px] px-2 py-0.5 rounded border border-amber-400 text-amber-600 hover:bg-amber-50">+ 추가</button>
+                  </div>
+                </div>
+                {purchaseFormAdj.map((adj, idx) => (
+                  <div key={idx} className={`rounded-lg border p-2.5 space-y-1.5 ${adj.type === "discount" ? "border-red-200 bg-red-50/30" : "border-amber-200 bg-amber-50/30"}`}>
+                    <div className="flex items-center justify-between">
+                      <span className={`text-[10px] font-medium ${adj.type === "discount" ? "text-red-500" : "text-amber-600"}`}>
+                        {adj.type === "discount" ? "할인" : "추가금액"}
+                      </span>
+                      <button onClick={() => removeAdj(idx)} className="text-muted hover:text-foreground text-xs">✕</button>
+                    </div>
+                    <div className="flex gap-1.5">
+                      <select
+                        value={adj.currency}
+                        onChange={(e) => updateAdj(idx, "currency", e.target.value)}
+                        className="text-[11px] px-1.5 py-1.5 rounded border border-border bg-background w-[85px]"
+                      >
+                        {curOpts.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                      </select>
+                      <input
+                        type="number"
+                        value={adj.amount || ""}
+                        onChange={(e) => updateAdj(idx, "amount", e.target.value)}
+                        placeholder="0"
+                        className="flex-1 text-sm px-2 py-1.5 rounded border border-border bg-background min-w-0"
+                      />
+                    </div>
+                    <input
+                      type="text"
+                      value={adj.note}
+                      onChange={(e) => updateAdj(idx, "note", e.target.value)}
+                      placeholder="사유 (카카오페이, 배대지 등)"
+                      className="w-full text-[11px] px-2 py-1 rounded border border-border bg-background"
+                    />
+                    {adj.amount > 0 && adj.currency !== "KRW" && (
+                      <p className="text-[10px] text-muted">= {formatPrice(adj.amountKRW, "KRW")}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+              {/* Notes */}
+              <div className="space-y-1">
+                <label className="text-xs text-muted">메모 (선택)</label>
+                <input
+                  type="text"
+                  value={purchaseFormNotes}
+                  onChange={(e) => setPurchaseFormNotes(e.target.value)}
+                  placeholder="기타 메모"
+                  className="w-full text-sm px-3 py-2 rounded border border-border bg-background"
+                />
+              </div>
+              {/* Summary */}
+              <div className="border-t border-border pt-3 space-y-1 text-sm">
+                <div className="flex justify-between text-xs text-muted">
+                  <span>상품+배송비</span>
+                  <span>{formatPrice(baseKRW, "KRW")}</span>
+                </div>
+                {purchaseFormAdj.filter((a) => a.type === "discount" && a.amountKRW > 0).map((a, i) => (
+                  <div key={`d${i}`} className="flex justify-between text-xs text-red-500">
+                    <span>할인{a.note ? ` (${a.note})` : ""}{a.currency !== "KRW" ? ` ${formatPrice(a.amount, a.currency)}` : ""}</span>
+                    <span>-{formatPrice(a.amountKRW, "KRW")}</span>
+                  </div>
+                ))}
+                {purchaseFormAdj.filter((a) => a.type === "extra" && a.amountKRW > 0).map((a, i) => (
+                  <div key={`e${i}`} className="flex justify-between text-xs text-amber-600">
+                    <span>추가{a.note ? ` (${a.note})` : ""}{a.currency !== "KRW" ? ` ${formatPrice(a.amount, a.currency)}` : ""}</span>
+                    <span>+{formatPrice(a.amountKRW, "KRW")}</span>
+                  </div>
+                ))}
+                <div className="flex justify-between font-bold pt-1 border-t border-border">
+                  <span>최종 결제</span>
+                  <span className="text-accent">{formatPrice(finalKRW, "KRW")}</span>
+                </div>
+              </div>
+              {/* Submit */}
+              <button
+                onClick={() => {
+                  const purchase: Purchase = {
+                    id: purchaseModal.editId ?? genId(),
+                    retailerId: purchaseModal.retailerId,
+                    version: purchaseModal.version,
+                    saleType: saleType,
+                    quantity: purchaseFormQty,
+                    totalPrice: finalKRW,
+                    discount: totalDiscountKRW,
+                    extra: totalExtraKRW,
+                    adjustments: purchaseFormAdj.filter((a) => a.amountKRW > 0),
+                    currency: "KRW",
+                    purchaseDate: existingPurchase?.purchaseDate ?? new Date().toISOString().slice(0, 10),
+                    notes: purchaseFormNotes,
+                  };
+                  savePurchase(purchase);
+                  if (!isEdit) removeCartItem(purchaseModal.retailerId, purchaseModal.version);
+                  reloadPurchases();
+                  setPurchaseModal(null);
+                }}
+                className="w-full py-2.5 rounded-lg bg-accent text-white text-sm font-medium hover:opacity-90 transition-opacity"
+              >
+                {isEdit ? "저장" : "구매 완료"}
+              </button>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Benefit gallery modal */}
+      {showBenefitGallery && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-2 sm:p-4" onClick={() => setShowBenefitGallery(false)}>
+          <div className="bg-card rounded-xl border border-border w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div className="sticky top-0 bg-card/95 backdrop-blur-sm z-10 flex items-center justify-between px-5 py-4 border-b border-border">
+              <div>
+                <h2 className="font-bold text-lg">미공포 전체 보기</h2>
+                <p className="text-xs text-muted mt-0.5">{allExclusiveBenefits.length}종</p>
+              </div>
+              <button onClick={() => setShowBenefitGallery(false)} className="text-muted hover:text-foreground text-xl">✕</button>
+            </div>
+            {/* Card list */}
+            <div className="p-3 space-y-3">
+              {allExclusiveBenefits.map(({ retailerId, retailerName, benefit }) => {
+                const purchaseCount = purchases.filter((p) => p.retailerId === retailerId).reduce((sum, p) => sum + (p.saleType === "set" ? 5 * p.quantity : p.quantity), 0);
+                const cartCount = cart.filter((c) => c.retailerId === retailerId).reduce((sum, c) => sum + (c.saleType === "set" ? 5 * c.quantity : c.quantity), 0);
+                const isPurchased = purchaseCount > 0;
+                const isInCart = cartCount > 0;
+                const benefitKey = `${retailerId}-${benefit.name}`;
+                const isSelected = expandedBenefit === benefitKey;
+                const versionLabel = benefit.versions?.map((v) => ALBUM_SPECS.find((a) => a.version === v)?.label).join(", ");
+                const retailer = RETAILERS.find((r) => r.id === retailerId);
+                const deadlineStr = retailer?.deadline || retailer?.salePeriods?.find((sp) => sp.type === "online")?.end;
+                return (
+                  <div
+                    key={benefitKey}
+                    className={`rounded-xl border overflow-hidden transition-all cursor-pointer ${
+                      isSelected ? "border-accent/50" : isPurchased ? "border-accent/30" : isInCart ? "border-amber-500/30" : "border-border"
+                    }`}
+                    onClick={() => setExpandedBenefit(isSelected ? null : benefitKey)}
+                  >
+                    {/* Card: image + overlay title */}
+                    <div className="relative">
+                      {benefit.image ? (
+                        <img
+                          src={benefit.image}
+                          alt={benefit.name}
+                          className={`w-full object-cover transition-all ${isSelected ? "max-h-none" : "h-28 sm:h-36"} ${isPurchased && !isSelected ? "brightness-75" : ""}`}
+                        />
+                      ) : (
+                        <div className={`w-full bg-border flex items-center justify-center text-sm text-muted ${isSelected ? "h-32" : "h-28 sm:h-36"}`}>미공개</div>
+                      )}
+                      {/* Purchased checkmark overlay */}
+                      {isPurchased && !isSelected && (
+                        <div className="absolute top-2 right-2 w-7 h-7 rounded-full bg-accent flex items-center justify-center shadow-lg">
+                          <span className="text-white text-sm">✓</span>
+                        </div>
+                      )}
+                      {/* Overlay info bar */}
+                      {!isSelected && (
+                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent px-3 pb-2.5 pt-8">
+                          <div className="flex items-end justify-between">
+                            <div>
+                              <p className="text-white text-sm font-bold drop-shadow-sm">{retailerName}</p>
+                              <p className="text-white/70 text-[10px]">{versionLabel}{deadlineStr ? ` · ~${deadlineStr.split(" ")[0].slice(5)}` : ""}</p>
+                            </div>
+                            <div className="flex gap-1">
+                              {isPurchased && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-accent text-white font-medium">구매완료</span>}
+                              {isInCart && !isPurchased && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-white/20 text-white">위시</span>}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    {/* Expanded detail */}
+                    {isSelected && (
+                      <div className="p-4 space-y-2 border-t border-border">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-bold">{retailerName}</span>
+                          {versionLabel && <span className="text-[10px] px-1.5 py-0.5 rounded bg-border text-muted">{versionLabel}</span>}
+                          {deadlineStr && <span className="text-[10px] text-muted">~{deadlineStr.split(" ")[0].slice(5)}</span>}
+                          {isPurchased && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-accent/15 text-accent">구매완료</span>}
+                          {isInCart && !isPurchased && <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: "var(--exclusive-bg)", color: "var(--exclusive)" }}>위시리스트</span>}
+                        </div>
+                        <p className="text-xs font-medium" style={{ color: "var(--exclusive)" }}>{benefit.name}</p>
+                        <p className="text-[11px] text-muted leading-relaxed">{benefit.description}</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Calendar modal */}
       {showCalendar && (
@@ -993,7 +1306,7 @@ export default function Dashboard() {
       {/* Lightbox */}
       {lightboxImg && (
         <div
-          className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center cursor-pointer"
+          className="fixed inset-0 z-[60] bg-black/70 flex items-center justify-center cursor-pointer"
           onClick={() => setLightboxImg(null)}
         >
           <img

@@ -5,7 +5,7 @@ import { ALBUM_SPECS, COLLECTION_REQUIREMENTS, AlbumVersion } from "@/data/album
 import { RETAILERS, Retailer, formatPrice, getShippingFee, getShippingDisplay, Currency } from "@/data/retailers";
 import { Purchase, Adjustment, getPurchases, savePurchase, deletePurchase, isPurchased, isBenefitOwned, setBenefitOwned } from "@/lib/purchases";
 import { getSyncCode, setSyncCode, clearSyncCode, createSync, connectSync, pushSync, pullSync, autoPush, autoPull } from "@/lib/sync";
-import { track } from "@vercel/analytics";
+import { initAnalytics, trackEvent } from "@/lib/analytics";
 import VersionBadge from "@/components/VersionBadge";
 
 const VERSIONS: AlbumVersion[] = ["PHOTOBOOK", "ID_PASS", "INVENTORY", "POCAALBUM"];
@@ -68,7 +68,12 @@ function useExchangeRates(): ExchangeRateState {
   return state;
 }
 
-const LAST_SYNC_DATE = "2026.04.04";
+const LAST_SYNC_DATE = "2026.04.05 15:00";
+
+const UPDATE_LOG = [
+  { date: "2026.04.05", message: "사운드웨이브 판매처 추가 (INVENTORY 영통 4차)" },
+];
+const LATEST_UPDATE = UPDATE_LOG[0];
 
 function useSpreadsheetUpdate() {
   const [hasUpdate, setHasUpdate] = useState(false);
@@ -150,6 +155,8 @@ export default function Dashboard() {
   const [mobilePanel, setMobilePanel] = useState<"list" | "cart" | "benefits" | "purchases">("list");
   const [showCalendar, setShowCalendar] = useState(false);
   const [showBenefitGallery, setShowBenefitGallery] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
+  const [updateDismissed, setUpdateDismissed] = useState(true);
   const [expandedBenefit, setExpandedBenefit] = useState<string | null>(null);
   const [purchaseModal, setPurchaseModal] = useState<{ retailerId: string; version: AlbumVersion; editId?: string } | null>(null);
   const [purchaseFormQty, setPurchaseFormQty] = useState(1);
@@ -167,9 +174,11 @@ export default function Dashboard() {
 
   // Load from localStorage + auto pull from server
   useEffect(() => {
+    initAnalytics();
     const load = async () => {
       setSyncCodeState(getSyncCode());
       setLastSaved(localStorage.getItem("plave-caligo-last-saved"));
+      setUpdateDismissed(localStorage.getItem("plave-update-dismissed") === LATEST_UPDATE.date);
       // 서버에서 먼저 가져오기 (동기화 코드 있으면)
       const pulled = await autoPull();
       // localStorage에서 로드 (pull 성공하면 이미 업데이트됨)
@@ -277,12 +286,12 @@ export default function Dashboard() {
     setCart((prev) => {
       const exists = prev.find((c) => c.retailerId === retailer.id && c.version === activeTab);
       if (exists) {
-        track("wishlist_remove", { retailer: retailer.name, version: activeTab });
+        trackEvent("wishlist_remove", { retailer: retailer.name, version: activeTab });
         return prev.filter((c) => !(c.retailerId === retailer.id && c.version === activeTab));
       }
       const sp = getSetPrice(retailer, activeTab);
       if (!sp) return prev;
-      track("wishlist_add", { retailer: retailer.name, version: activeTab });
+      trackEvent("wishlist_add", { retailer: retailer.name, version: activeTab });
       const products = retailer.products.filter((p) => p.version === activeTab);
       const hasRealSet = products.some((p) => p.saleType === "set");
       return [...prev, {
@@ -387,17 +396,18 @@ export default function Dashboard() {
           {/* Desktop: buttons next to title */}
           <div className="hidden sm:flex items-center gap-2 flex-wrap">
             <button
-              onClick={() => setShowSync(!showSync)}
+              onClick={() => { setShowSync(!showSync); if (!showSync) trackEvent("open_sync"); }}
               className={`text-xs px-3 py-1.5 rounded border transition-colors ${syncCode ? "border-green-500/30 text-green-600 hover:border-green-500" : "border-border text-muted hover:text-foreground hover:border-muted"}`}
             >
               {syncCode ? `🔗 ${syncCode}` : "🔄 동기화"}
             </button>
-            <button onClick={() => { setShowBenefitGallery(true); track("open_benefits"); }} className="text-xs px-3 py-1.5 rounded border border-border text-muted hover:text-foreground hover:border-muted transition-colors">🃏 미공포</button>
-            <button onClick={() => { setShowCalendar(true); track("open_calendar"); }} className="text-xs px-3 py-1.5 rounded border border-border text-muted hover:text-foreground hover:border-muted transition-colors">📅 일정</button>
+            <button onClick={() => { setShowBenefitGallery(true); trackEvent("open_benefits"); }} className="text-xs px-3 py-1.5 rounded border border-border text-muted hover:text-foreground hover:border-muted transition-colors">🃏 미공포</button>
+            <button onClick={() => { setShowCalendar(true); trackEvent("open_calendar"); }} className="text-xs px-3 py-1.5 rounded border border-border text-muted hover:text-foreground hover:border-muted transition-colors">📅 일정</button>
             <a href="https://docs.google.com/spreadsheets/d/1ZoCg8ovvls40kOYZfQqgT7Jk9vuUyP6FSabl7G4Au0U/edit?gid=0#gid=0" target="_blank" rel="noopener noreferrer" className="text-xs px-3 py-1.5 rounded border border-border text-muted hover:text-foreground hover:border-muted transition-colors">📊 음총팀</a>
+            <button onClick={() => { setShowGuide(true); trackEvent("open_guide"); }} className="text-xs px-3 py-1.5 rounded border border-border text-muted hover:text-foreground hover:border-muted transition-colors">사용 가이드</button>
           </div>
         </div>
-        {/* Mobile: sync + sheet only */}
+        {/* Mobile: sync + sheet + guide */}
         <div className="flex sm:hidden items-center gap-1.5 flex-wrap">
           <button
             onClick={() => setShowSync(!showSync)}
@@ -406,6 +416,7 @@ export default function Dashboard() {
             {syncCode ? `🔗 ${syncCode}` : "🔄 동기화"}
           </button>
           <a href="https://docs.google.com/spreadsheets/d/1ZoCg8ovvls40kOYZfQqgT7Jk9vuUyP6FSabl7G4Au0U/edit?gid=0#gid=0" target="_blank" rel="noopener noreferrer" className="text-[11px] px-2 py-1 rounded border border-border text-muted hover:text-foreground hover:border-muted transition-colors">📊 음총팀</a>
+          <button onClick={() => { setShowGuide(true); trackEvent("open_guide"); }} className="text-[11px] px-2 py-1 rounded border border-border text-muted hover:text-foreground hover:border-muted transition-colors">사용 가이드</button>
         </div>
         <div className="text-[10px] text-muted space-y-0.5">
           <p>📋 판매처 정보: {LAST_SYNC_DATE} 기준{lastSaved && <> · 🕐 저장: {new Date(lastSaved).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}</>}</p>
@@ -425,6 +436,7 @@ export default function Dashboard() {
             <button onClick={sheetUpdate.dismiss} className="text-muted hover:text-foreground ml-auto">✕</button>
           </div>
         )}
+        {/* Update toast is rendered as fixed element below */}
       </div>
 
       {/* Sync panel */}
@@ -468,7 +480,7 @@ export default function Dashboard() {
                 onClick={async () => {
                   setSyncStatus("생성 중...");
                   const r = await createSync();
-                  if (r.code) { setSyncCodeState(r.code); setSyncStatus("코드 생성 완료!"); track("sync_create"); }
+                  if (r.code) { setSyncCodeState(r.code); setSyncStatus("코드 생성 완료!"); trackEvent("sync_create"); }
                   else setSyncStatus(r.error ?? "실패");
                   setTimeout(() => setSyncStatus(null), 2000);
                 }}
@@ -496,7 +508,7 @@ export default function Dashboard() {
                       if (stored) setBenefitState(JSON.parse(stored));
                       const storedCart = localStorage.getItem("plave-caligo-cart");
                       if (storedCart) setCart(JSON.parse(storedCart));
-                      setSyncStatus("연결 완료!"); track("sync_connect");
+                      setSyncStatus("연결 완료!"); trackEvent("sync_connect");
                     } else {
                       setSyncStatus(r.error ?? "실패");
                     }
@@ -519,7 +531,7 @@ export default function Dashboard() {
           return (
             <button
               key={v}
-              onClick={() => { setActiveTab(v); setMobilePanel("list"); }}
+              onClick={() => { setActiveTab(v); setMobilePanel("list"); trackEvent("version_tab", { version: v }); }}
               className={`rounded-lg p-2 sm:p-3 border text-left transition-all ${
                 activeTab === v ? "shadow-sm" : "border-border hover:border-muted bg-card"
               }`}
@@ -541,14 +553,14 @@ export default function Dashboard() {
           {([["all", "전체"], ["available", "미구매"], ["cart", "위시리스트"], ["purchased", "구매완료"], ["closed", "마감"]] as const).map(([key, label]) => (
             <button
               key={key}
-              onClick={() => setStatusFilter(key)}
+              onClick={() => { setStatusFilter(key); trackEvent("filter_change", { filter: key }); }}
               className={`text-[11px] px-2.5 py-1 rounded-full border whitespace-nowrap transition-colors ${statusFilter === key ? "bg-accent text-white border-accent" : "border-border text-muted hover:border-muted"}`}
             >{label}</button>
           ))}
         </div>
         <select
           value={sortBy}
-          onChange={(e) => setSortBy(e.target.value as "price" | "deadline" | "exclusive")}
+          onChange={(e) => { const v = e.target.value as "price" | "deadline" | "exclusive"; setSortBy(v); trackEvent("sort_change", { sort: v }); }}
           className="text-[11px] px-2 py-1 rounded border border-border bg-card text-muted"
         >
           <option value="exclusive">미공포 우선</option>
@@ -593,7 +605,7 @@ export default function Dashboard() {
                   {/* Info - clickable to expand */}
                   <div
                     className="flex-1 min-w-0 cursor-pointer"
-                    onClick={() => setExpandedRetailer(isExpanded ? null : r.id)}
+                    onClick={() => { setExpandedRetailer(isExpanded ? null : r.id); if (!isExpanded) trackEvent("retailer_detail", { retailer: r.name }); }}
                   >
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-xs sm:text-sm">{r.name}</span>
@@ -635,7 +647,7 @@ export default function Dashboard() {
                   {/* Price */}
                   <div
                     className="text-right flex-shrink-0 cursor-pointer"
-                    onClick={() => setExpandedRetailer(isExpanded ? null : r.id)}
+                    onClick={() => { setExpandedRetailer(isExpanded ? null : r.id); if (!isExpanded) trackEvent("retailer_detail", { retailer: r.name }); }}
                   >
                     <div className="font-semibold text-sm">
                       {displayCurrency !== "KRW"
@@ -743,6 +755,7 @@ export default function Dashboard() {
                             href={linkUrl}
                             target="_blank"
                             rel="noopener noreferrer"
+                            onClick={() => trackEvent("buy_link_click", { retailer: r.name, version: activeTab })}
                             className="text-xs px-3 py-1.5 rounded bg-accent text-white hover:opacity-90 transition-opacity"
                           >
                             구매하러 가기 →
@@ -954,7 +967,7 @@ export default function Dashboard() {
           ] as const).map(([key, label, icon]) => (
             <button
               key={key}
-              onClick={() => setMobilePanel(key)}
+              onClick={() => { setMobilePanel(key); trackEvent("mobile_nav", { tab: key }); }}
               className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors ${
                 mobilePanel === key ? "text-accent" : "text-muted"
               }`}
@@ -964,14 +977,14 @@ export default function Dashboard() {
             </button>
           ))}
           <button
-            onClick={() => { setShowBenefitGallery(true); track("open_benefits"); }}
+            onClick={() => { setShowBenefitGallery(true); trackEvent("open_benefits"); }}
             className="flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors text-muted"
           >
             <span className="text-lg">🃏</span>
             <span className="text-[10px]">미공포</span>
           </button>
           <button
-            onClick={() => { setShowCalendar(true); track("open_calendar"); }}
+            onClick={() => { setShowCalendar(true); trackEvent("open_calendar"); }}
             className="flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors text-muted"
           >
             <span className="text-lg">📅</span>
@@ -1019,7 +1032,7 @@ export default function Dashboard() {
         };
         const removeAdj = (idx: number) => setPurchaseFormAdj((prev) => prev.filter((_, i) => i !== idx));
         return (
-          <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setPurchaseModal(null)}>
+          <div className="fixed top-0 left-0 w-screen h-screen z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setPurchaseModal(null)}>
             <div className="bg-card rounded-xl border border-border p-5 w-full max-w-sm max-h-[85vh] overflow-y-auto space-y-4" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold">{isEdit ? "구매 내역 수정" : "구매 완료"}</h3>
@@ -1139,7 +1152,7 @@ export default function Dashboard() {
                     notes: purchaseFormNotes,
                   };
                   savePurchase(purchase);
-                  track(isEdit ? "purchase_edit" : "purchase_complete", { retailer: retailer.name, version: purchaseModal.version, amount: finalKRW });
+                  trackEvent(isEdit ? "purchase_edit" : "purchase_complete", { retailer: retailer.name, version: purchaseModal.version, amount: finalKRW });
                   if (!isEdit) removeCartItem(purchaseModal.retailerId, purchaseModal.version);
                   reloadPurchases();
                   setPurchaseModal(null);
@@ -1155,7 +1168,7 @@ export default function Dashboard() {
 
       {/* Benefit gallery modal */}
       {showBenefitGallery && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-2 sm:p-4" onClick={() => setShowBenefitGallery(false)}>
+        <div className="fixed top-0 left-0 w-screen h-screen z-50 bg-black/60 flex items-center justify-center p-2 sm:p-4" onClick={() => setShowBenefitGallery(false)}>
           <div className="bg-card rounded-xl border border-border w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             {/* Header */}
             <div className="sticky top-0 bg-card/95 backdrop-blur-sm z-10 flex items-center justify-between px-5 py-4 border-b border-border">
@@ -1183,7 +1196,7 @@ export default function Dashboard() {
                     className={`rounded-xl border overflow-hidden transition-all cursor-pointer ${
                       isSelected ? "border-green-500 border-[3px]" : isPurchased ? "border-green-500 border-[3px]" : isInCart ? "border-amber-400/60 border-[3px]" : "border-border"
                     }`}
-                    onClick={() => setExpandedBenefit(isSelected ? null : benefitKey)}
+                    onClick={() => { setExpandedBenefit(isSelected ? null : benefitKey); if (!isSelected) trackEvent("benefit_detail", { retailer: retailerName }); }}
                   >
                     {/* Card: image + overlay title */}
                     <div className="relative">
@@ -1240,9 +1253,50 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* Guide modal */}
+      {showGuide && (
+        <div className="fixed top-0 left-0 w-screen h-screen z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setShowGuide(false)}>
+          <div className="bg-card rounded-xl border border-border p-5 w-full max-w-sm max-h-[80vh] overflow-y-auto space-y-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h2 className="font-bold text-lg">사용 가이드</h2>
+              <button onClick={() => setShowGuide(false)} className="text-muted hover:text-foreground text-xl">✕</button>
+            </div>
+            <div className="space-y-4 text-sm">
+              <div>
+                <p className="font-semibold mb-1">1. 버전 선택</p>
+                <p className="text-xs text-muted">상단 탭에서 PHOTOBOOK / ID PASS / INVENTORY / POCAALBUM 버전을 선택하면 해당 버전을 취급하는 판매처만 표시됩니다.</p>
+              </div>
+              <div>
+                <p className="font-semibold mb-1">2. 위시리스트 담기</p>
+                <p className="text-xs text-muted">판매처 왼쪽 체크박스를 누르면 위시리스트에 담깁니다. 수량 조절과 가격 확인이 가능합니다.</p>
+              </div>
+              <div>
+                <p className="font-semibold mb-1">3. 구매 체크</p>
+                <p className="text-xs text-muted">위시리스트에서 "구매체크" 버튼을 누르면 수량, 할인, 추가금액을 입력하고 구매 내역으로 기록할 수 있습니다. 구매 내역을 클릭하면 수정도 가능합니다.</p>
+              </div>
+              <div>
+                <p className="font-semibold mb-1">4. 미공포 확인</p>
+                <p className="text-xs text-muted">🃏 미공포 버튼을 누르면 전체 미공포 포토카드를 한눈에 볼 수 있습니다. 구매/위시 상태도 표시됩니다.</p>
+              </div>
+              <div>
+                <p className="font-semibold mb-1">5. 기기 간 동기화</p>
+                <p className="text-xs text-muted">🔄 동기화 버튼에서 코드를 생성하면, 다른 기기에서 같은 코드로 데이터를 공유할 수 있습니다. 데이터는 자동 저장됩니다.</p>
+              </div>
+              <div>
+                <p className="font-semibold mb-1">6. 드볼 진행도</p>
+                <p className="text-xs text-muted">구매내역 아래에서 버전별 드볼 진행 현황을 확인할 수 있습니다. 위시리스트 + 구매내역이 모두 합산됩니다.</p>
+              </div>
+              <div className="pt-2 border-t border-border">
+                <p className="text-[11px] text-muted">데이터는 브라우저에 저장되며, 동기화 코드 연결 시 서버에도 백업됩니다. 문의는 @ari4plv로 부탁드립니다.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Calendar modal */}
       {showCalendar && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setShowCalendar(false)}>
+        <div className="fixed top-0 left-0 w-screen h-screen z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setShowCalendar(false)}>
           <div className="bg-card rounded-xl border border-border p-5 w-full max-w-md max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold">📅 일정 캘린더</h2>
@@ -1286,10 +1340,21 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* Update toast */}
+      {!updateDismissed && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 animate-slide-down">
+          <div className="flex items-center gap-3 text-xs bg-card border border-accent/30 rounded-xl shadow-lg px-4 py-3 max-w-sm">
+            <span className="text-accent text-base">🆕</span>
+            <span className="flex-1">{LATEST_UPDATE.message}</span>
+            <button onClick={() => { localStorage.setItem("plave-update-dismissed", LATEST_UPDATE.date); setUpdateDismissed(true); }} className="text-muted hover:text-foreground text-sm">✕</button>
+          </div>
+        </div>
+      )}
+
       {/* Lightbox */}
       {lightboxImg && (
         <div
-          className="fixed inset-0 z-[60] bg-black/70 flex items-center justify-center cursor-pointer"
+          className="fixed top-0 left-0 w-screen h-screen z-[60] bg-black/70 flex items-center justify-center cursor-pointer"
           onClick={() => setLightboxImg(null)}
         >
           <img

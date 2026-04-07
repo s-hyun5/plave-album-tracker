@@ -68,7 +68,7 @@ function useExchangeRates(): ExchangeRateState {
   return state;
 }
 
-const BUILD_TIME = new Date().toLocaleString("ko-KR", { timeZone: "Asia/Seoul", year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+const BUILD_TIME = process.env.NEXT_PUBLIC_BUILD_TIME ?? "";
 
 const UPDATE_LOG = [
   { date: "2026.04.07", message: "위버스샵 일본 추가, hello82 미공포 이미지 공개, 데이터 업데이트" },
@@ -144,6 +144,7 @@ export default function Dashboard() {
   // Load from localStorage + auto pull from server
   useEffect(() => {
     initAnalytics();
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js");
     const load = async () => {
       setSyncCodeState(getSyncCode());
       setLastSaved(localStorage.getItem("plave-caligo-last-saved"));
@@ -1299,7 +1300,7 @@ export default function Dashboard() {
 
       {/* Update toast */}
       {!updateDismissed && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 animate-slide-down w-[85%] max-w-fit">
+        <div className="fixed top-4 left-4 right-4 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:w-auto z-50 animate-slide-down">
           <div className="flex items-center gap-3 text-xs bg-card border border-accent/30 rounded-xl shadow-lg px-4 py-3">
             <span className="text-accent text-base">🆕</span>
             <span className="flex-1">{LATEST_UPDATE.message}</span>

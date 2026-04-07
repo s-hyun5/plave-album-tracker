@@ -34,7 +34,6 @@ export default function RootLayout({
         <meta name="theme-color" content="#7c5cfc" />
       </head>
       <body className="min-h-full flex flex-col font-[family-name:var(--font-geist-sans)]">
-        <script dangerouslySetInnerHTML={{ __html: `if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js')}` }} />
         <Nav />
         <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-6">
           {children}

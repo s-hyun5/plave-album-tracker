@@ -71,7 +71,7 @@ function useExchangeRates(): ExchangeRateState {
 const BUILD_TIME = new Date().toLocaleString("ko-KR", { timeZone: "Asia/Seoul", year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
 
 const UPDATE_LOG = [
-  { date: "2026.04.07", message: "위버스샵 일본 추가, 훗타운 TME 2차 오픈, hello82 마감일 수정, QQ Music 미공포 추가" },
+  { date: "2026.04.07", message: "위버스샵 일본 추가, hello82 미공포 이미지 공개, 데이터 업데이트" },
 ];
 const LATEST_UPDATE = UPDATE_LOG[0];
 
@@ -1299,8 +1299,8 @@ export default function Dashboard() {
 
       {/* Update toast */}
       {!updateDismissed && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 animate-slide-down">
-          <div className="flex items-center gap-3 text-xs bg-card border border-accent/30 rounded-xl shadow-lg px-4 py-3 max-w-sm">
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 animate-slide-down w-[85%] max-w-fit">
+          <div className="flex items-center gap-3 text-xs bg-card border border-accent/30 rounded-xl shadow-lg px-4 py-3">
             <span className="text-accent text-base">🆕</span>
             <span className="flex-1">{LATEST_UPDATE.message}</span>
             <button onClick={() => { localStorage.setItem("plave-update-dismissed", LATEST_UPDATE.date); setUpdateDismissed(true); }} className="text-muted hover:text-foreground text-sm">✕</button>

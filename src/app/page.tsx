@@ -68,42 +68,12 @@ function useExchangeRates(): ExchangeRateState {
   return state;
 }
 
-const LAST_SYNC_DATE = "2026.04.05 15:00";
+const BUILD_TIME = new Date().toLocaleString("ko-KR", { timeZone: "Asia/Seoul", year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
 
 const UPDATE_LOG = [
-  { date: "2026.04.05", message: "사운드웨이브 판매처 추가 (INVENTORY 영통 4차)" },
+  { date: "2026.04.07", message: "위버스샵 일본 추가, 훗타운 TME 2차 오픈, hello82 마감일 수정, QQ Music 미공포 추가" },
 ];
 const LATEST_UPDATE = UPDATE_LOG[0];
-
-function useSpreadsheetUpdate() {
-  const [hasUpdate, setHasUpdate] = useState(false);
-  const [sheetDate, setSheetDate] = useState<string | null>(null);
-
-  useEffect(() => {
-    const dismissed = localStorage.getItem("plave-sheet-dismissed");
-    fetch("https://docs.google.com/spreadsheets/d/1ZoCg8ovvls40kOYZfQqgT7Jk9vuUyP6FSabl7G4Au0U/gviz/tq?tqx=out:csv&gid=0&range=E1")
-      .then((r) => r.text())
-      .then((text) => {
-        // "Update. 26.03.30" 같은 형태에서 날짜 추출
-        const match = text.match(/(\d{2})\.(\d{2})\.(\d{2})/);
-        if (match) {
-          const date = `20${match[1]}.${match[2]}.${match[3]}`;
-          setSheetDate(date);
-          if (date > LAST_SYNC_DATE && dismissed !== date) {
-            setHasUpdate(true);
-          }
-        }
-      })
-      .catch(() => {});
-  }, []);
-
-  const dismiss = () => {
-    if (sheetDate) localStorage.setItem("plave-sheet-dismissed", sheetDate);
-    setHasUpdate(false);
-  };
-
-  return { hasUpdate, sheetDate, dismiss };
-}
 
 function toKRW(price: number, currency: Currency, rates: Record<Currency, number>): number {
   return Math.round(price * rates[currency]);
@@ -170,7 +140,6 @@ export default function Dashboard() {
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
   const [showSync, setShowSync] = useState(false);
   const exchangeRate = useExchangeRates();
-  const sheetUpdate = useSpreadsheetUpdate();
 
   // Load from localStorage + auto pull from server
   useEffect(() => {
@@ -403,7 +372,7 @@ export default function Dashboard() {
             </button>
             <button onClick={() => { setShowBenefitGallery(true); trackEvent("open_benefits"); }} className="text-xs px-3 py-1.5 rounded border border-border text-muted hover:text-foreground hover:border-muted transition-colors">🃏 미공포</button>
             <button onClick={() => { setShowCalendar(true); trackEvent("open_calendar"); }} className="text-xs px-3 py-1.5 rounded border border-border text-muted hover:text-foreground hover:border-muted transition-colors">📅 일정</button>
-            <a href="https://docs.google.com/spreadsheets/d/1ZoCg8ovvls40kOYZfQqgT7Jk9vuUyP6FSabl7G4Au0U/edit?gid=0#gid=0" target="_blank" rel="noopener noreferrer" className="text-xs px-3 py-1.5 rounded border border-border text-muted hover:text-foreground hover:border-muted transition-colors">📊 음총팀</a>
+            <a href="https://album-sales.plavestream.com/" target="_blank" rel="noopener noreferrer" className="text-xs px-3 py-1.5 rounded border border-border text-muted hover:text-foreground hover:border-muted transition-colors">📊 음총팀</a>
             <button onClick={() => { setShowGuide(true); trackEvent("open_guide"); }} className="text-xs px-3 py-1.5 rounded border border-border text-muted hover:text-foreground hover:border-muted transition-colors">사용 가이드</button>
           </div>
         </div>
@@ -415,27 +384,15 @@ export default function Dashboard() {
           >
             {syncCode ? `🔗 ${syncCode}` : "🔄 동기화"}
           </button>
-          <a href="https://docs.google.com/spreadsheets/d/1ZoCg8ovvls40kOYZfQqgT7Jk9vuUyP6FSabl7G4Au0U/edit?gid=0#gid=0" target="_blank" rel="noopener noreferrer" className="text-[11px] px-2 py-1 rounded border border-border text-muted hover:text-foreground hover:border-muted transition-colors">📊 음총팀</a>
+          <a href="https://album-sales.plavestream.com/" target="_blank" rel="noopener noreferrer" className="text-[11px] px-2 py-1 rounded border border-border text-muted hover:text-foreground hover:border-muted transition-colors">📊 음총팀</a>
           <button onClick={() => { setShowGuide(true); trackEvent("open_guide"); }} className="text-[11px] px-2 py-1 rounded border border-border text-muted hover:text-foreground hover:border-muted transition-colors">사용 가이드</button>
         </div>
         <div className="text-[10px] text-muted space-y-0.5">
-          <p>📋 판매처 정보: {LAST_SYNC_DATE} 기준{lastSaved && <> · 🕐 저장: {new Date(lastSaved).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}</>}</p>
+          <p>📋 판매처 정보: {BUILD_TIME} 기준{lastSaved && <> · 🕐 저장: {new Date(lastSaved).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}</>}</p>
           {exchangeRate.updatedAt && (
             <p>💱 환율: {new Date(exchangeRate.updatedAt).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })} 기준 (1 USD = {exchangeRate.rates.USD.toLocaleString()}원)</p>
           )}
         </div>
-        {sheetUpdate.hasUpdate && (
-          <div className="flex items-center gap-2 text-xs bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-1.5">
-            <span>🔔 음총팀 정리본이 업데이트됨 ({sheetUpdate.sheetDate})</span>
-            <a
-              href="https://docs.google.com/spreadsheets/d/1ZoCg8ovvls40kOYZfQqgT7Jk9vuUyP6FSabl7G4Au0U/edit?gid=0#gid=0"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-amber-600 underline"
-            >확인</a>
-            <button onClick={sheetUpdate.dismiss} className="text-muted hover:text-foreground ml-auto">✕</button>
-          </div>
-        )}
         {/* Update toast is rendered as fixed element below */}
       </div>
 

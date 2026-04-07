@@ -260,13 +260,13 @@ export const RETAILERS: Retailer[] = [
       { version: "ID_PASS", saleType: "set", price: 149.90, currency: "USD", url: "https://x.com/hello82official/status/2036262062024999073?s=20" },
     ],
     benefits: [
-      { type: "photocard", name: "Exclusive 포카 (BITE Ver.)", description: "hello82 Exclusive 포토카드 55×85mm, 5종 중 1종 랜덤", isExclusive: true, versions: ["ID_PASS"], image: "/benefits/hello82-B.png" },
-      { type: "photocard", name: "POP-UP 포카 (LOOKUP Ver.)", description: "POP-UP Exclusive 포토카드 55×85mm, 5종 중 1종 랜덤", isExclusive: true, versions: ["ID_PASS"], image: "/benefits/hello82-L.png" },
+      { type: "photocard", name: "Exclusive 포카 (BITE Ver.)", description: "hello82 Exclusive 포토카드 55×85mm, 5종 중 1종 랜덤", isExclusive: true, versions: ["ID_PASS"], image: "/benefits/hello82-bite.jpeg" },
+      { type: "photocard", name: "POP-UP 포카 (LOOKUP Ver.)", description: "POP-UP Exclusive 포토카드 55×85mm, 5종 중 1종 랜덤", isExclusive: true, versions: ["ID_PASS"], image: "/benefits/hello82-lookup.jpeg" },
     ],
     salePeriods: [
-      { type: "online", start: "2026-03-24 11:00", end: "2026-04-17 23:59" },
+      { type: "online", start: "2026-03-24 11:00", end: "2026-04-20 11:59" },
     ],
-    notes: ["미국 주소만 가능 (포워딩 불가)", "버전당 최대 4장"],
+    notes: ["미국 주소만 가능 (포워딩 불가)", "버전당 최대 4장", "Market을 US로 미리 설정 후 링크 클릭 필요"],
     chartReflection: ["Billboard", "Circle", "한터"],
   },
   {
@@ -310,6 +310,7 @@ export const RETAILERS: Retailer[] = [
       { version: "POCAALBUM", saleType: "random", price: 39, currency: "CNY", url: "https://i2.y.qq.com/n3/cm/pages/putao/product_detail/index.html?productID=1205352975280253" },
     ],
     benefits: [
+      { type: "photocard", name: "TME 미공포", description: "PHOTOBOOK 구매 시 미공개 포토카드 5종 중 1종 랜덤", isExclusive: true, versions: ["PHOTOBOOK"], image: "/benefits/tme.png" },
     ],
     salePeriods: [
       { type: "online", start: "2026-03-24 10:00", end: "2026-04-13 22:59" },
@@ -478,7 +479,7 @@ export const RETAILERS: Retailer[] = [
     benefits: [
       { type: "photocard", name: "TME 독점 미공포", description: "TME 미공개 포토카드 5종 중 1종 랜덤 (세트 구매 시 중복없이 5장)", isExclusive: true, versions: ["PHOTOBOOK"], image: "/benefits/tme.png" },
     ],
-    notes: ["1차 품절 마감", "2차 공동구매 준비 중 (오픈 못할 수도 있음)", "한국만 배송"],
+    notes: ["1차 품절 마감", "2차 오픈: 앨범 1장 랜덤 구성만 진행, 5장 이상 구매 시에도 세트 구성 불가", "한국만 배송"],
   },
   {
     id: "gp_hottown_will",
@@ -679,6 +680,31 @@ export const RETAILERS: Retailer[] = [
     benefits: [],
     chartReflection: ["한터", "써클"],
     notes: ["카카오뱅크 3333-2843-44254 ㅂㅁㅈ", "6,700원 = POCAALBUM 1장 반영", "1원 단위 입금 가능"],
+  },
+
+  // ═══ 위버스샵 일본 ═══
+  {
+    id: "weverse_jp",
+    name: "위버스샵 일본",
+    country: "JP",
+    currency: "KRW",
+    type: "retailer",
+    url: "https://shop.weverse.io",
+    shippingFee: null,
+    shippingNote: "일본 국내 배송",
+    deadline: "2026-04-20",
+    products: [
+      { version: "INVENTORY", saleType: "set", price: 119625, currency: "KRW", url: "https://shop.weverse.io/ko/shop/KRW/artists/167/sales/56689" },
+      { version: "POCAALBUM", saleType: "set", price: 57420, currency: "KRW", url: "https://shop.weverse.io/ko/shop/KRW/artists/167/sales/56691" },
+    ],
+    benefits: [
+      { type: "other", name: "컨셉포토 A 엽서", description: "INVENTORY 구매 시 포스트카드 컨셉포토A 5매 증정", isExclusive: false, versions: ["INVENTORY"] },
+      { type: "photocard", name: "위버스 일본 미공포 (E)", description: "POCAALBUM 구매 시 미공개 포토카드 5종 1세트 (미공개 도안 E)", isExclusive: true, versions: ["POCAALBUM"], image: "/benefits/wevers-jp.jpeg" },
+    ],
+    salePeriods: [
+      { type: "online", start: "2026-04-07 11:00", end: "2026-04-20" },
+    ],
+    notes: ["6/9 일본 발매", "특전 소진시 마감", "최대 5개 구매", "배송 6/9~6/23 (KST)"],
   },
 
   // ═══ 추가 판매처 ═══

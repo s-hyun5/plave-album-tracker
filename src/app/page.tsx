@@ -71,6 +71,7 @@ function useExchangeRates(): ExchangeRateState {
 const BUILD_TIME = process.env.NEXT_PUBLIC_BUILD_TIME ?? "";
 
 const UPDATE_LOG = [
+  { date: "2026.04.09", message: "위버스JP/UNIVERSAL MUSIC 영통 추가, 미공포 D 이미지 공개, 마감 판매처 하단 정렬, 구매 제외 필터 추가" },
   { date: "2026.04.07", message: "위버스샵 일본 추가, hello82 미공포 이미지 공개, 데이터 업데이트" },
 ];
 const LATEST_UPDATE = UPDATE_LOG[0];
@@ -133,6 +134,7 @@ export default function Dashboard() {
   const [purchaseFormAdj, setPurchaseFormAdj] = useState<Adjustment[]>([]);
   const [purchaseFormNotes, setPurchaseFormNotes] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "available" | "cart" | "purchased" | "closed">("all");
+  const [excludePurchased, setExcludePurchased] = useState(false);
   const [sortBy, setSortBy] = useState<"price" | "deadline" | "exclusive">("exclusive");
   const [syncCode, setSyncCodeState] = useState<string | null>(null);
   const [syncInput, setSyncInput] = useState("");
@@ -181,18 +183,23 @@ export default function Dashboard() {
     autoPush();
   }, []);
 
-  // All exclusive benefits across all retailers (deduplicated by image)
+  // All exclusive benefits across all retailers (deduplicated by image, merging retailer names)
   const allExclusiveBenefits = useMemo(() => {
     const all = RETAILERS.flatMap((r) =>
       r.benefits
         .filter((b) => b.isExclusive)
-        .map((b) => ({ retailerId: r.id, retailerName: r.name, benefit: b }))
+        .map((b) => ({ retailerId: r.id, retailerName: r.name, benefit: b, retailers: [{ id: r.id, name: r.name }] }))
     );
-    const seen = new Set<string>();
-    return all.filter(({ benefit }) => {
-      if (benefit.image) {
-        if (seen.has(benefit.image)) return false;
-        seen.add(benefit.image);
+    const imageMap = new Map<string, typeof all[0]>();
+    return all.filter((item) => {
+      if (item.benefit.image) {
+        const existing = imageMap.get(item.benefit.image);
+        if (existing) {
+          existing.retailers.push({ id: item.retailerId, name: item.retailerName });
+          existing.retailerName = existing.retailers.map((r) => r.name).join(" / ");
+          return false;
+        }
+        imageMap.set(item.benefit.image, item);
       }
       return true;
     });
@@ -210,6 +217,8 @@ export default function Dashboard() {
     const now = new Date();
     return RETAILERS.filter((r) => {
       if (!r.products.some((p) => p.version === activeTab)) return false;
+      // Exclude purchased toggle
+      if (excludePurchased && purchases.some((p) => p.retailerId === r.id && p.version === activeTab)) return false;
       // Status filter
       if (statusFilter === "available") {
         const d = getDeadlineDate(r);
@@ -224,6 +233,14 @@ export default function Dashboard() {
       }
       return true;
     }).sort((a, b) => {
+      // Closed items always at bottom
+      const aDeadline = getDeadlineDate(a);
+      const bDeadline = getDeadlineDate(b);
+      const aClosed = aDeadline ? aDeadline < now : false;
+      const bClosed = bDeadline ? bDeadline < now : false;
+      if (aClosed && !bClosed) return 1;
+      if (!aClosed && bClosed) return -1;
+
       if (sortBy === "exclusive") {
         const aExcl = a.benefits.some((b) => b.isExclusive && (!b.versions || b.versions.includes(activeTab)));
         const bExcl = b.benefits.some((b) => b.isExclusive && (!b.versions || b.versions.includes(activeTab)));
@@ -247,7 +264,7 @@ export default function Dashboard() {
       };
       return getPriceForSort(a) - getPriceForSort(b);
     });
-  }, [activeTab, exchangeRate.rates, statusFilter, sortBy, cart, purchases, getDeadlineDate]);
+  }, [activeTab, exchangeRate.rates, statusFilter, excludePurchased, sortBy, cart, purchases, getDeadlineDate]);
 
   // Cart helpers
   const isInCart = (retailerId: string) => cart.some((c) => c.retailerId === retailerId && c.version === activeTab);
@@ -516,6 +533,15 @@ export default function Dashboard() {
             >{label}</button>
           ))}
         </div>
+        <label className="flex items-center gap-1 text-[11px] text-muted cursor-pointer whitespace-nowrap select-none">
+          <input
+            type="checkbox"
+            checked={excludePurchased}
+            onChange={() => { setExcludePurchased(!excludePurchased); trackEvent("filter_change", { filter: excludePurchased ? "include_purchased" : "exclude_purchased" }); }}
+            className="w-3 h-3 accent-accent"
+          />
+          구매 제외
+        </label>
         <select
           value={sortBy}
           onChange={(e) => { const v = e.target.value as "price" | "deadline" | "exclusive"; setSortBy(v); trackEvent("sort_change", { sort: v }); }}
@@ -539,6 +565,8 @@ export default function Dashboard() {
             const inCart = isInCart(r.id);
             const isExpanded = expandedRetailer === r.id;
             const purchased = isPurchasedCheck(r.id);
+            const deadlineDate = getDeadlineDate(r);
+            const isClosed = deadlineDate ? deadlineDate < new Date() : false;
             const displayPrice = sp?.price ?? 0;
             const displayCurrency = sp?.currency ?? "KRW";
             const shipping = sp ? getShippingFee(r, displayPrice) : null;
@@ -546,7 +574,7 @@ export default function Dashboard() {
 
             return (
               <div key={r.id} id={`retailer-${r.id}`} className={`rounded-lg border overflow-hidden transition-colors ${
-                purchased ? "border-border bg-card opacity-50" : inCart ? "border-accent bg-accent-light" : "border-border bg-card"
+                isClosed ? "border-border bg-card opacity-40 grayscale-[30%]" : purchased ? "border-border bg-card opacity-60" : inCart ? "border-accent bg-accent-light" : "border-border bg-card"
               }`}>
                 {/* Main row */}
                 <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3">
@@ -720,7 +748,7 @@ export default function Dashboard() {
                           </a>
                         );
                       })()}
-                      {inCart && !purchased && (
+                      {!purchased && (
                         <button
                           onClick={() => handleMarkPurchased(r.id, activeTab)}
                           className="text-xs px-3 py-1.5 rounded border border-accent text-accent hover:bg-accent-light transition-colors"
@@ -1138,9 +1166,10 @@ export default function Dashboard() {
             </div>
             {/* Card list */}
             <div className="p-3 space-y-3">
-              {allExclusiveBenefits.map(({ retailerId, retailerName, benefit }) => {
-                const purchaseCount = purchases.filter((p) => p.retailerId === retailerId).reduce((sum, p) => sum + (p.saleType === "set" ? 5 * p.quantity : p.quantity), 0);
-                const cartCount = cart.filter((c) => c.retailerId === retailerId).reduce((sum, c) => sum + (c.saleType === "set" ? 5 * c.quantity : c.quantity), 0);
+              {allExclusiveBenefits.map(({ retailerId, retailerName, benefit, retailers: benefitRetailers }) => {
+                const retailerIds = benefitRetailers.map((r) => r.id);
+                const purchaseCount = purchases.filter((p) => retailerIds.includes(p.retailerId)).reduce((sum, p) => sum + (p.saleType === "set" ? 5 * p.quantity : p.quantity), 0);
+                const cartCount = cart.filter((c) => retailerIds.includes(c.retailerId)).reduce((sum, c) => sum + (c.saleType === "set" ? 5 * c.quantity : c.quantity), 0);
                 const isPurchased = purchaseCount > 0;
                 const isInCart = cartCount > 0;
                 const benefitKey = `${retailerId}-${benefit.name}`;

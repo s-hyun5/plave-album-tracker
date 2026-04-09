@@ -690,21 +690,46 @@ export const RETAILERS: Retailer[] = [
     currency: "KRW",
     type: "retailer",
     url: "https://shop.weverse.io",
-    shippingFee: null,
-    shippingNote: "일본 국내 배송",
+    shippingFee: 800,
+    shippingNote: "¥800 (일본 국내)",
     deadline: "2026-04-20",
     products: [
       { version: "INVENTORY", saleType: "set", price: 119625, currency: "KRW", url: "https://shop.weverse.io/ko/shop/KRW/artists/167/sales/56689" },
       { version: "POCAALBUM", saleType: "set", price: 57420, currency: "KRW", url: "https://shop.weverse.io/ko/shop/KRW/artists/167/sales/56691" },
+      { version: "PHOTOBOOK", saleType: "single", price: 28231, currency: "KRW", url: "https://shop.weverse.io/ko/shop/KRW/artists/167/sales/56852" },
     ],
     benefits: [
       { type: "other", name: "컨셉포토 A 엽서", description: "INVENTORY 구매 시 포스트카드 컨셉포토A 5매 증정", isExclusive: false, versions: ["INVENTORY"] },
       { type: "photocard", name: "위버스 일본 미공포 (E)", description: "POCAALBUM 구매 시 미공개 포토카드 5종 1세트 (미공개 도안 E)", isExclusive: true, versions: ["POCAALBUM"], image: "/benefits/wevers-jp.jpeg" },
+      { type: "photocard", name: "위버스 일본 영통 미공포 (D)", description: "영통 응모 구매 시 멤버별 포토카드 1장 (5종 랜덤, 미공개 도안 D)", isExclusive: true, versions: ["PHOTOBOOK"], image: "/benefits/universal-weverse-jp.jpeg" },
     ],
     salePeriods: [
       { type: "online", start: "2026-04-07 11:00", end: "2026-04-20" },
+      { type: "online", start: "2026-04-09 11:00", end: "2026-04-12 23:59" },
     ],
-    notes: ["6/9 일본 발매", "특전 소진시 마감", "최대 5개 구매", "배송 6/9~6/23 (KST)"],
+    notes: ["6/9 일본 발매", "특전 소진시 마감", "앨범 최대 5개 구매", "영통 1인 20개까지", "영통: 4/9~4/12, PHOTOBOOK Ver. 단품", "배송 6/9~6/23 (KST)"],
+  },
+
+  {
+    id: "universal_music_jp",
+    name: "UNIVERSAL MUSIC STORE",
+    country: "JP",
+    currency: "JPY",
+    type: "retailer",
+    url: "https://store-annex.universal-music.co.jp",
+    shippingFee: 0,
+    shippingNote: "무료 (일본 국내)",
+    deadline: "2026-04-12",
+    products: [
+      { version: "PHOTOBOOK", saleType: "single", price: 3245, currency: "JPY", url: "https://store-annex.universal-music.co.jp/product/dsku15815/" },
+    ],
+    benefits: [
+      { type: "photocard", name: "영통 미공포 (D)", description: "멤버별 포토카드 1장 (5종 랜덤, 미공개 도안 D, 위버스샵 일본과 동일)", isExclusive: true, versions: ["PHOTOBOOK"], image: "/benefits/universal-weverse-jp.jpeg" },
+    ],
+    salePeriods: [
+      { type: "online", start: "2026-04-09 11:00", end: "2026-04-12 23:59" },
+    ],
+    notes: ["영통 응모 상품 (5/17 온라인 토크)", "구매 시 자동 응모", "당첨발표 4월 하순", "Discord/WeChat 1:1 2분 영상통화", "일본 국내 발송만 가능", "6/9 일본 발매"],
   },
 
   // ═══ 추가 판매처 ═══

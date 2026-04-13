@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useMemo, useCallback, useEffect } from "react";
+import Link from "next/link";
+import { ChevronDown, ChevronUp, Heart } from "lucide-react";
 import { ALBUM_SPECS, COLLECTION_REQUIREMENTS, AlbumVersion } from "@/data/albums";
 import { RETAILERS, Retailer, formatPrice, getShippingFee, getShippingDisplay, Currency } from "@/data/retailers";
 import { Purchase, Adjustment, getPurchases, savePurchase, deletePurchase, isPurchased, isBenefitOwned, setBenefitOwned } from "@/lib/purchases";
@@ -71,10 +73,20 @@ function useExchangeRates(): ExchangeRateState {
 const BUILD_TIME = process.env.NEXT_PUBLIC_BUILD_TIME ?? "";
 
 const UPDATE_LOG = [
+  { date: "2026.04.14", message: "위드뮤·Ktown4u 럭키드로우·PLAVE 유튜브 스토어 추가, 판매처 리스트 섹션별 그룹핑, 카드 상세 버튼 개선, 미공포 페이지 개편" },
   { date: "2026.04.09", message: "위버스JP/UNIVERSAL MUSIC 영통 추가, 미공포 D 이미지 공개, 마감 판매처 하단 정렬, 구매 제외 필터 추가" },
   { date: "2026.04.07", message: "위버스샵 일본 추가, hello82 미공포 이미지 공개, 데이터 업데이트" },
 ];
 const LATEST_UPDATE = UPDATE_LOG[0];
+
+type SectionKey = "공구" | "영통" | "국내" | "해외" | "closed";
+const SECTION_CONFIG: Array<{ key: SectionKey; icon: string; label: string }> = [
+  { key: "공구", icon: "📦", label: "공구" },
+  { key: "영통", icon: "📞", label: "영상통화 이벤트" },
+  { key: "국내", icon: "🇰🇷", label: "국내" },
+  { key: "해외", icon: "🌏", label: "해외" },
+  { key: "closed", icon: "⏱", label: "마감됨" },
+];
 
 function toKRW(price: number, currency: Currency, rates: Record<Currency, number>): number {
   return Math.round(price * rates[currency]);
@@ -125,10 +137,8 @@ export default function Dashboard() {
   const [lightboxImg, setLightboxImg] = useState<string | null>(null);
   const [mobilePanel, setMobilePanel] = useState<"list" | "cart" | "benefits" | "purchases">("list");
   const [showCalendar, setShowCalendar] = useState(false);
-  const [showBenefitGallery, setShowBenefitGallery] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [updateDismissed, setUpdateDismissed] = useState(true);
-  const [expandedBenefit, setExpandedBenefit] = useState<string | null>(null);
   const [purchaseModal, setPurchaseModal] = useState<{ retailerId: string; version: AlbumVersion; editId?: string } | null>(null);
   const [purchaseFormQty, setPurchaseFormQty] = useState(1);
   const [purchaseFormAdj, setPurchaseFormAdj] = useState<Adjustment[]>([]);
@@ -141,6 +151,7 @@ export default function Dashboard() {
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
   const [showSync, setShowSync] = useState(false);
+  const [collapsedSections, setCollapsedSections] = useState<Set<SectionKey>>(new Set(["closed"]));
   const exchangeRate = useExchangeRates();
 
   // Load from localStorage + auto pull from server
@@ -181,28 +192,6 @@ export default function Dashboard() {
   const reloadPurchases = useCallback(() => {
     setPurchases(getPurchases());
     autoPush();
-  }, []);
-
-  // All exclusive benefits across all retailers (deduplicated by image, merging retailer names)
-  const allExclusiveBenefits = useMemo(() => {
-    const all = RETAILERS.flatMap((r) =>
-      r.benefits
-        .filter((b) => b.isExclusive)
-        .map((b) => ({ retailerId: r.id, retailerName: r.name, benefit: b, retailers: [{ id: r.id, name: r.name }] }))
-    );
-    const imageMap = new Map<string, typeof all[0]>();
-    return all.filter((item) => {
-      if (item.benefit.image) {
-        const existing = imageMap.get(item.benefit.image);
-        if (existing) {
-          existing.retailers.push({ id: item.retailerId, name: item.retailerName });
-          existing.retailerName = existing.retailers.map((r) => r.name).join(" / ");
-          return false;
-        }
-        imageMap.set(item.benefit.image, item);
-      }
-      return true;
-    });
   }, []);
 
   // Helper: get deadline for a retailer
@@ -265,6 +254,44 @@ export default function Dashboard() {
       return getPriceForSort(a) - getPriceForSort(b);
     });
   }, [activeTab, exchangeRate.rates, statusFilter, excludePurchased, sortBy, cart, purchases, getDeadlineDate]);
+
+  // 섹션 분류: 마감 > 영통 > 공구 > 해외 > 국내
+  const categorize = useCallback((r: Retailer): SectionKey => {
+    const deadline = getDeadlineDate(r);
+    if (deadline && deadline < new Date()) return "closed";
+    const has영통 = r.benefits.some((b) =>
+      b.type === "event" &&
+      b.description.includes("영상통화") &&
+      (!b.versions || b.versions.includes(activeTab))
+    );
+    if (has영통) return "영통";
+    if (r.type === "group_purchase") return "공구";
+    if (r.country !== "KR") return "해외";
+    return "국내";
+  }, [activeTab, getDeadlineDate]);
+
+  const groupedRetailers = useMemo(() => {
+    const groups: Record<SectionKey, Retailer[]> = {
+      "공구": [],
+      "영통": [],
+      "국내": [],
+      "해외": [],
+      "closed": [],
+    };
+    retailers.forEach((r) => {
+      groups[categorize(r)].push(r);
+    });
+    return groups;
+  }, [retailers, categorize]);
+
+  const toggleSection = useCallback((key: SectionKey) => {
+    setCollapsedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
 
   // Cart helpers
   const isInCart = (retailerId: string) => cart.some((c) => c.retailerId === retailerId && c.version === activeTab);
@@ -388,7 +415,7 @@ export default function Dashboard() {
             >
               {syncCode ? `🔗 ${syncCode}` : "🔄 동기화"}
             </button>
-            <button onClick={() => { setShowBenefitGallery(true); trackEvent("open_benefits"); }} className="text-xs px-3 py-1.5 rounded border border-border text-muted hover:text-foreground hover:border-muted transition-colors">🃏 미공포</button>
+            <Link href="/benefits" onClick={() => trackEvent("open_benefits")} className="text-xs px-3 py-1.5 rounded border border-border text-muted hover:text-foreground hover:border-muted transition-colors">🃏 미공포</Link>
             <button onClick={() => { setShowCalendar(true); trackEvent("open_calendar"); }} className="text-xs px-3 py-1.5 rounded border border-border text-muted hover:text-foreground hover:border-muted transition-colors">📅 일정</button>
             <a href="https://album-sales.plavestream.com/" target="_blank" rel="noopener noreferrer" className="text-xs px-3 py-1.5 rounded border border-border text-muted hover:text-foreground hover:border-muted transition-colors">📊 음총팀</a>
             <button onClick={() => { setShowGuide(true); trackEvent("open_guide"); }} className="text-xs px-3 py-1.5 rounded border border-border text-muted hover:text-foreground hover:border-muted transition-colors">사용 가이드</button>
@@ -556,8 +583,28 @@ export default function Dashboard() {
       {/* Main: list + panel */}
       <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 pb-20 lg:pb-0">
         {/* Left: retailer list */}
-        <div className={`flex-1 min-w-0 space-y-2 ${mobilePanel !== "list" ? "hidden lg:block" : ""}`}>
-          {retailers.map((r) => {
+        <div className={`flex-1 min-w-0 space-y-4 ${mobilePanel !== "list" ? "hidden lg:block" : ""}`}>
+          {SECTION_CONFIG.map(({ key: sectionKey, icon, label }) => {
+            const items = groupedRetailers[sectionKey];
+            if (items.length === 0) return null;
+            // "closed" 섹션은 statusFilter가 "closed"면 자동 펼침
+            const isCollapsed = collapsedSections.has(sectionKey) && !(sectionKey === "closed" && statusFilter === "closed");
+            return (
+              <div key={sectionKey} className="space-y-2">
+                <button
+                  onClick={() => toggleSection(sectionKey)}
+                  className="w-full flex items-center gap-2 px-1 pt-2 pb-1.5 text-left border-b border-border/60 hover:opacity-70 transition-opacity group"
+                >
+                  <span className="text-sm">{icon}</span>
+                  <span className="font-bold text-sm tracking-tight">{label}</span>
+                  <span className="text-[11px] text-muted font-normal">{items.length}</span>
+                  <span className="ml-auto text-xs text-muted group-hover:text-foreground font-normal">
+                    {isCollapsed ? "더보기" : "접기"}
+                  </span>
+                </button>
+                {!isCollapsed && (
+                  <div className="space-y-2">
+                    {items.map((r) => {
             const products = r.products.filter((p) => p.version === activeTab);
             const sp = getSetPrice(r, activeTab);
             const exclusives = r.benefits.filter((b) => b.isExclusive && (!b.versions || b.versions.includes(activeTab)));
@@ -595,9 +642,6 @@ export default function Dashboard() {
                   >
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-xs sm:text-sm">{r.name}</span>
-                      {r.type === "group_purchase" && (
-                        <span className="text-xs px-1.5 py-0.5 rounded bg-border text-muted">공구</span>
-                      )}
                       {hasExclusive && (
                         <span className="text-xs px-1.5 py-0.5 rounded-full font-medium" style={{ color: "var(--exclusive)", backgroundColor: "var(--exclusive-bg)" }}>
                           미공포
@@ -649,6 +693,15 @@ export default function Dashboard() {
                       {shipping === null && <span className="text-amber-600"> + 배송비</span>}
                     </div>
                   </div>
+
+                  {/* Chevron — visual detail affordance */}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setExpandedRetailer(isExpanded ? null : r.id); if (!isExpanded) trackEvent("retailer_detail", { retailer: r.name }); }}
+                    className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-muted hover:text-foreground hover:bg-card-hover transition-colors"
+                    aria-label={isExpanded ? "접기" : "자세히 보기"}
+                  >
+                    {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                  </button>
                 </div>
 
                 {/* Expanded detail */}
@@ -761,6 +814,11 @@ export default function Dashboard() {
                 )}
               </div>
             );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
           })}
         </div>
 
@@ -781,7 +839,7 @@ export default function Dashboard() {
                     if (!retailer) return null;
                     const hasExclusive = retailer.benefits.some((b) => b.isExclusive && (!b.versions || b.versions.includes(item.version)));
                     const sp = getSetPrice(retailer, item.version);
-                    const itemTotal = sp ? sp.price * item.quantity : 0;
+                    const itemTotal = item.unitPrice * item.quantity;
                     const shipping = sp ? getShippingFee(retailer, itemTotal) : null;
                     const displayTotal = itemTotal + (shipping ?? 0);
                     const cur = sp?.currency ?? "KRW";
@@ -948,7 +1006,7 @@ export default function Dashboard() {
         <div className="flex justify-around items-center h-14 max-w-lg mx-auto">
           {([
             ["list", "판매처", "🏪"],
-            ["cart", "위시리스트", "💜"],
+            ["cart", "위시리스트", "heart"],
             ["purchases", "구매내역", "📦"],
           ] as const).map(([key, label, icon]) => (
             <button
@@ -958,17 +1016,22 @@ export default function Dashboard() {
                 mobilePanel === key ? "text-accent" : "text-muted"
               }`}
             >
-              <span className="text-lg">{icon}</span>
+              {icon === "heart" ? (
+                <Heart size={20} className="fill-purple-500 text-purple-500" />
+              ) : (
+                <span className="text-lg">{icon}</span>
+              )}
               <span className="text-[10px]">{label}{key === "cart" && cart.length > 0 ? ` (${cart.length})` : ""}</span>
             </button>
           ))}
-          <button
-            onClick={() => { setShowBenefitGallery(true); trackEvent("open_benefits"); }}
+          <Link
+            href="/benefits"
+            onClick={() => trackEvent("open_benefits")}
             className="flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors text-muted"
           >
             <span className="text-lg">🃏</span>
             <span className="text-[10px]">미공포</span>
-          </button>
+          </Link>
           <button
             onClick={() => { setShowCalendar(true); trackEvent("open_calendar"); }}
             className="flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors text-muted"
@@ -989,7 +1052,12 @@ export default function Dashboard() {
         const saleType = existingPurchase?.saleType ?? cartItem?.saleType ?? "random";
         const sp = getSetPrice(retailer, purchaseModal.version);
         const cur = sp?.currency ?? "KRW";
-        const itemTotal = sp ? sp.price * purchaseFormQty : 0;
+        // sp.price는 세트 가격, 개별 단가 = 세트가 ÷ 5 (실제 set 상품이 있거나 PHOTOBOOK이면 나누지 않음)
+        const modalProducts = retailer.products.filter((p) => p.version === purchaseModal.version);
+        const modalHasRealSet = modalProducts.some((p) => p.saleType === "set");
+        const modalDivisor = (modalHasRealSet || purchaseModal.version === "PHOTOBOOK") ? 1 : 5;
+        const modalUnitPrice = sp ? sp.price / modalDivisor : 0;
+        const itemTotal = modalUnitPrice * purchaseFormQty;
         const shipping = sp ? getShippingFee(retailer, itemTotal) : null;
         const baseKRW = toKRW(itemTotal + (shipping ?? 0), cur, exchangeRate.rates);
         const totalDiscountKRW = purchaseFormAdj.filter((a) => a.type === "discount").reduce((s, a) => s + a.amountKRW, 0);
@@ -1151,94 +1219,6 @@ export default function Dashboard() {
           </div>
         );
       })()}
-
-      {/* Benefit gallery modal */}
-      {showBenefitGallery && (
-        <div className="fixed top-0 left-0 w-screen h-screen z-50 bg-black/60 flex items-center justify-center p-2 sm:p-4" onClick={() => setShowBenefitGallery(false)}>
-          <div className="bg-card rounded-xl border border-border w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            {/* Header */}
-            <div className="sticky top-0 bg-card/95 backdrop-blur-sm z-10 flex items-center justify-between px-5 py-4 border-b border-border">
-              <div>
-                <h2 className="font-bold text-lg">미공포 전체 보기</h2>
-                <p className="text-xs text-muted mt-0.5">{allExclusiveBenefits.length}종</p>
-              </div>
-              <button onClick={() => setShowBenefitGallery(false)} className="text-muted hover:text-foreground text-xl">✕</button>
-            </div>
-            {/* Card list */}
-            <div className="p-3 space-y-3">
-              {allExclusiveBenefits.map(({ retailerId, retailerName, benefit, retailers: benefitRetailers }) => {
-                const retailerIds = benefitRetailers.map((r) => r.id);
-                const purchaseCount = purchases.filter((p) => retailerIds.includes(p.retailerId)).reduce((sum, p) => sum + (p.saleType === "set" ? 5 * p.quantity : p.quantity), 0);
-                const cartCount = cart.filter((c) => retailerIds.includes(c.retailerId)).reduce((sum, c) => sum + (c.saleType === "set" ? 5 * c.quantity : c.quantity), 0);
-                const isPurchased = purchaseCount > 0;
-                const isInCart = cartCount > 0;
-                const benefitKey = `${retailerId}-${benefit.name}`;
-                const isSelected = expandedBenefit === benefitKey;
-                const versionLabel = benefit.versions?.map((v) => ALBUM_SPECS.find((a) => a.version === v)?.label).join(", ");
-                const retailer = RETAILERS.find((r) => r.id === retailerId);
-                const deadlineStr = retailer?.deadline || retailer?.salePeriods?.find((sp) => sp.type === "online")?.end;
-                return (
-                  <div
-                    key={benefitKey}
-                    className={`rounded-xl border overflow-hidden transition-all cursor-pointer ${
-                      isSelected ? "border-green-500 border-[3px]" : isPurchased ? "border-green-500 border-[3px]" : isInCart ? "border-amber-400/60 border-[3px]" : "border-border"
-                    }`}
-                    onClick={() => { setExpandedBenefit(isSelected ? null : benefitKey); if (!isSelected) trackEvent("benefit_detail", { retailer: retailerName }); }}
-                  >
-                    {/* Card: image + overlay title */}
-                    <div className="relative">
-                      {benefit.image ? (
-                        <img
-                          src={benefit.image}
-                          alt={benefit.name}
-                          className={`w-full object-cover transition-all ${isSelected ? "max-h-none" : "h-28 sm:h-36"} ${isPurchased && !isSelected ? "brightness-75" : ""}`}
-                        />
-                      ) : (
-                        <div className={`w-full bg-border flex items-center justify-center text-sm text-muted ${isSelected ? "h-32" : "h-28 sm:h-36"}`}>미공개</div>
-                      )}
-                      {/* Purchased checkmark overlay */}
-                      {isPurchased && !isSelected && (
-                        <div className="absolute top-2 right-2 w-7 h-7 rounded-full bg-green-500 flex items-center justify-center shadow-lg">
-                          <span className="text-white text-sm">✓</span>
-                        </div>
-                      )}
-                      {/* Overlay info bar */}
-                      {!isSelected && (
-                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent px-3 pb-2.5 pt-8">
-                          <div className="flex items-end justify-between">
-                            <div>
-                              <p className="text-white text-sm font-bold drop-shadow-sm">{retailerName}</p>
-                              <p className="text-white/70 text-[10px]">{versionLabel}{deadlineStr ? ` · ~${deadlineStr.split(" ")[0].slice(5)}` : ""}</p>
-                            </div>
-                            <div className="flex gap-1">
-                              {isPurchased && <span className="text-xs px-2.5 py-1 rounded-full bg-green-500 text-white font-medium">구매완료</span>}
-                              {isInCart && !isPurchased && <span className="text-xs px-2.5 py-1 rounded-full bg-amber-500 text-white font-medium">위시</span>}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    {/* Expanded detail */}
-                    {isSelected && (
-                      <div className="p-4 space-y-2 border-t border-border">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-bold">{retailerName}</span>
-                          {versionLabel && <span className="text-[10px] px-1.5 py-0.5 rounded bg-border text-muted">{versionLabel}</span>}
-                          {deadlineStr && <span className="text-[10px] text-muted">~{deadlineStr.split(" ")[0].slice(5)}</span>}
-                          {isPurchased && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-green-500/15 text-green-600">구매완료</span>}
-                          {isInCart && !isPurchased && <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: "var(--exclusive-bg)", color: "var(--exclusive)" }}>위시리스트</span>}
-                        </div>
-                        <p className="text-xs font-medium" style={{ color: "var(--exclusive)" }}>{benefit.name}</p>
-                        <p className="text-[11px] text-muted leading-relaxed">{benefit.description}</p>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Guide modal */}
       {showGuide && (

@@ -85,6 +85,31 @@ export const RETAILERS: Retailer[] = [
     ],
   },
   {
+    id: "plave_youtube",
+    name: "PLAVE 유튜브 스토어",
+    country: "KR",
+    currency: "KRW",
+    type: "official",
+    url: "https://www.youtube.com/@plave_official/store",
+    shippingFee: 3000,
+    shippingFreeOver: 50000,
+    shippingNote: "5만원 이상 무료 (vlastshop 발송)",
+    deadline: "2026-04-20 23:00",
+    products: [
+      { version: "PHOTOBOOK", saleType: "single", price: 20000, currency: "KRW", url: "https://www.youtube.com/@plave_official/store" },
+      { version: "ID_PASS", saleType: "random", price: 14900, currency: "KRW", url: "https://www.youtube.com/@plave_official/store" },
+      { version: "INVENTORY", saleType: "random", price: 17100, currency: "KRW", url: "https://www.youtube.com/@plave_official/store" },
+      { version: "POCAALBUM", saleType: "random", price: 8200, currency: "KRW", url: "https://www.youtube.com/@plave_official/store" },
+    ],
+    benefits: [
+      { type: "photocard", name: "유튜브 쇼핑 미공포", description: "앨범 1장당 미공개 포토카드 5종 중 1종 랜덤 (전 버전 대상, 2장 이상 구매 시 중복없이)", isExclusive: true, image: "/benefits/youtube.png" },
+    ],
+    salePeriods: [
+      { type: "online", start: "2026-04-13 18:00", end: "2026-04-20 23:00" },
+    ],
+    notes: ["유튜브 스토어 탭을 통해 [YOUTUBE EVENT] 상품으로 구매해야 특전 적용", "VLAST Shop 발송 (vlastshop.com 제공)", "주문 후 단순 변심 환불 불가"],
+  },
+  {
     id: "weverse",
     name: "Weverse Shop",
     country: "KR",
@@ -470,7 +495,7 @@ export const RETAILERS: Retailer[] = [
     type: "group_purchase",
     organizer: "홋타운",
     originalRetailer: "QQ Music (TME)",
-    deadline: "2026-04-13",
+    deadline: "2026-04-13 16:00",
     shippingFee: 22537,
     shippingNote: "국제운송료 22,537원 (30% 할인쿠폰 제공)",
     products: [
@@ -479,7 +504,7 @@ export const RETAILERS: Retailer[] = [
     benefits: [
       { type: "photocard", name: "TME 독점 미공포", description: "TME 미공개 포토카드 5종 중 1종 랜덤 (세트 구매 시 중복없이 5장)", isExclusive: true, versions: ["PHOTOBOOK"], image: "/benefits/tme.png" },
     ],
-    notes: ["1차 품절 마감", "2차 오픈: 앨범 1장 랜덤 구성만 진행, 5장 이상 구매 시에도 세트 구성 불가", "한국만 배송"],
+    notes: ["수량 소진 조기 마감 (4/13)", "1차 품절 마감", "2차 오픈: 앨범 1장 랜덤 구성만 진행, 5장 이상 구매 시에도 세트 구성 불가", "한국만 배송"],
   },
   {
     id: "gp_hottown_will",
@@ -489,7 +514,7 @@ export const RETAILERS: Retailer[] = [
     type: "group_purchase",
     organizer: "홋타운",
     originalRetailer: "WillMusic",
-    deadline: "2026-04-13",
+    deadline: "2026-04-13 20:00",
     shippingFee: 23682,
     shippingNote: "국제운송료 23,682원 (50% 할인쿠폰 제공)",
     products: [
@@ -498,7 +523,7 @@ export const RETAILERS: Retailer[] = [
     benefits: [
       { type: "photocard", name: "WillMusic 독점 미공포", description: "WillMusic 미공개 특전 미니카드 (세트 구매 시 중복없이 5장)", isExclusive: true, versions: ["POCAALBUM"], image: "/benefits/will.png" },
     ],
-    notes: ["품절 시 조기마감", "한국만 배송", "출고: 발매일(4/14) 이후 순차발송"],
+    notes: ["판매처 수량 제한 요청으로 조기 마감 (4/13)", "한국만 배송", "출고: 발매일(4/14) 이후 순차발송"],
   },
 
   // ═══ 추가 공구 ═══
@@ -620,6 +645,28 @@ export const RETAILERS: Retailer[] = [
       { type: "online", start: "2026-04-05 11:00", end: "2026-04-08 23:59", versions: ["INVENTORY"] },
     ],
     notes: ["적립금/쿠폰 사용 불가", "주문 취소/환불 불가", "디스코드·WeChat으로만 영통 진행", "영통 미응모 시 미응모 선택 필수 (구매 후 변경 불가)", "응모기간 내 구매 시 자동 응모, 당첨 발표 1시간 전까지 취소 가능"],
+  },
+  {
+    id: "withmuu",
+    name: "위드뮤",
+    country: "KR",
+    currency: "KRW",
+    type: "retailer",
+    url: "https://withmuu.com",
+    shippingFee: 3000,
+    shippingNote: "3,000원",
+    deadline: "2026-04-16 23:59",
+    products: [
+      { version: "INVENTORY", saleType: "random", price: 17100, currency: "KRW", url: "https://withmuu.com/goods/event_sale.php?sno=1333" },
+    ],
+    benefits: [
+      { type: "photocard", name: "위드뮤 응모자 미공포", description: "미공개 셀카 포토카드 5종 중 1종 랜덤 (앨범 1장당 1장, 2장 이상 구매 시 중복없이)", isExclusive: true, versions: ["INVENTORY"], image: "/benefits/withmuu.png" },
+      { type: "event", name: "영상통화 이벤트 6차", description: "INVENTORY 구매 시 1:1 영상통화 응모 (50명 추첨, 멤버당 10명, 영통 5/23, 당첨 발표 4/17 14:00, 당첨자 전원 친필사인 포토카드 1장 증정)", isExclusive: false, versions: ["INVENTORY"] },
+    ],
+    salePeriods: [
+      { type: "online", start: "2026-04-13 11:00", end: "2026-04-16 23:59", versions: ["INVENTORY"] },
+    ],
+    notes: ["구매 후 주문 취소/환불/교환 불가", "도서산간 불가지역·해외 배송 불가", "무통장 입금 선택 시 주문 자동 취소", "멤버 중복 응모 가능"],
   },
   {
     id: "izuwi",
@@ -755,6 +802,29 @@ export const RETAILERS: Retailer[] = [
     salePeriods: [
       { type: "online", start: "2026-03-24 11:00", end: "2026-04-13" },
     ],
+  },
+  {
+    id: "ktown4u_luckydraw",
+    name: "Ktown4u 럭키드로우",
+    country: "KR",
+    currency: "KRW",
+    type: "retailer",
+    url: "https://kr.ktown4u.com/eventinfo?eve_no=44148946&biz_no=967",
+    shippingFee: 3000,
+    shippingFreeOver: 30000,
+    shippingNote: "3만원 이상 무료",
+    deadline: "2026-04-20 20:00",
+    products: [
+      { version: "POCAALBUM", saleType: "random", price: 8200, currency: "KRW", url: "https://kr.ktown4u.com/eventinfo?eve_no=44148946&biz_no=967" },
+      { version: "POCAALBUM", saleType: "set", price: 41000, currency: "KRW", url: "https://kr.ktown4u.com/eventinfo?eve_no=44148946&biz_no=967" },
+    ],
+    benefits: [
+      { type: "photocard", name: "Ktown4u 럭드로 미공포", description: "POCAALBUM 1장당 미공개 포토카드 5종 중 1종 랜덤 (1:1)", isExclusive: true, versions: ["POCAALBUM"], image: "/benefits/kt4.png" },
+    ],
+    salePeriods: [
+      { type: "online", start: "2026-04-14 11:00", end: "2026-04-20 20:00", versions: ["POCAALBUM"] },
+    ],
+    notes: ["4/14 판매 시작 — 상세 정보 미정", "결제 완료 기준 판매 기간", "kr/us/jp.ktown4u.com 공통 이벤트"],
   },
   {
     id: "asterum",

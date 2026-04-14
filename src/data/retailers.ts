@@ -232,8 +232,7 @@ export const RETAILERS: Retailer[] = [
       { version: "POCAALBUM", saleType: "set", price: 41000, currency: "KRW" },
     ],
     benefits: [
-      { type: "photocard", name: "무신사 2차 미공포", description: "미공개 포토카드 5종 중 1종 랜덤 (1:1, 2장 이상 구매 시 중복없이, 온/오프라인 동일)", isExclusive: true, versions: ["ID_PASS"], image: "/benefits/musinsa-M.png" },
-      { type: "photocard", name: "ASTERUM 433-10 A2T DRAW 포토카드", description: "ASTERUM 433-10에서 제공되는 A2T DRAW와 동일한 포토카드 5종 중 랜덤 1종 (온라인 2차 + 명동 오프라인 동일, 십카페 럭드로도 동일 미공포 수령 가능)", isExclusive: false },
+      { type: "photocard", name: "무신사 2차 미공포", description: "미공개 포토카드 5종 중 1종 랜덤 (1:1, 2장 이상 구매 시 중복없이, 온/오프라인 동일, 십카페·A2T DRAW와 동일)", isExclusive: true, versions: ["ID_PASS"], image: "/benefits/10cafe-new.jpeg" },
     ],
     salePeriods: [
       { type: "online", start: "2026-04-14 11:00", end: "2026-04-20 23:00" },
@@ -851,7 +850,7 @@ export const RETAILERS: Retailer[] = [
   },
   {
     id: "asterum",
-    name: "ASTERUM 433-10",
+    name: "십카페",
     country: "KR",
     currency: "KRW",
     type: "official",
@@ -859,7 +858,7 @@ export const RETAILERS: Retailer[] = [
     shippingFee: null,
     products: [],
     benefits: [
-      { type: "photocard", name: "ASTERUM 미공포", description: "Caligo Pt.2 모든 버전 구매 시 미공개 포토카드 (A2T DRAW와 동일)", isExclusive: true, image: "/benefits/10cafe-new.jpeg" },
+      { type: "photocard", name: "십카페 미공포", description: "Caligo Pt.2 모든 버전 구매 시 미공개 포토카드 (A2T DRAW·무신사 2차와 동일)", isExclusive: true, image: "/benefits/10cafe-new.jpeg" },
     ],
     salePeriods: [
       { type: "offline", store: "서울 서대문구 연희로11가길 48-23 Asterum 433-10", start: "2026-04-20 15:00", end: "2026-04-20 23:00" },

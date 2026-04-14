@@ -37,6 +37,30 @@ export default function BenefitsPage() {
   }, []);
 
   const allExclusiveBenefits = useMemo(() => {
+    // 같은 origin(예: 09Platform, TME, WillMusic)을 공유하는 판매처들은 paren 한 번만 노출.
+    // origin은 paren에서 추출하거나, paren 없는 이름 자체가 origin일 수도 있음 (예: WillMusic).
+    const formatGroupedNames = (names: string[]): string => {
+      if (names.length === 1) return names[0];
+      const parsed = names.map((n) => {
+        const paren = n.match(/\([^)]+\)\s*$/)?.[0] ?? "";
+        const base = (paren ? n.slice(0, n.length - paren.length) : n).trim();
+        const origin = paren.replace(/[()]/g, "").split(/[\s/]/)[0]?.trim() ?? "";
+        return { base, paren: paren.trim(), origin };
+      });
+      const parenOrigins = parsed.filter((p) => p.origin).map((p) => p.origin);
+      const candidateOrigin = parenOrigins[0] ?? parsed.find((p) => !p.paren)?.base ?? "";
+      const allMatchOrigin = !!candidateOrigin && parsed.every((p) =>
+        p.origin === candidateOrigin || p.base === candidateOrigin
+      );
+      if (allMatchOrigin) {
+        const cleanedBases = parsed.map((p) => p.base.replace(/\s*\d차\s*$/, "").trim());
+        const otherBases = Array.from(new Set(cleanedBases.filter((b) => b !== candidateOrigin)));
+        if (otherBases.length === 0) return candidateOrigin;
+        return `${otherBases.join(" / ")} (${candidateOrigin})`;
+      }
+      return names.join(" / ");
+    };
+
     const all = RETAILERS.flatMap((r) =>
       r.benefits
         .filter((b) => b.isExclusive)
@@ -48,7 +72,7 @@ export default function BenefitsPage() {
         const existing = imageMap.get(item.benefit.image);
         if (existing) {
           existing.retailers.push({ id: item.retailerId, name: item.retailerName });
-          existing.retailerName = existing.retailers.map((r) => r.name).join(" / ");
+          existing.retailerName = formatGroupedNames(existing.retailers.map((r) => r.name));
           return false;
         }
         imageMap.set(item.benefit.image, item);

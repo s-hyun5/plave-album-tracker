@@ -110,6 +110,29 @@ export const RETAILERS: Retailer[] = [
     notes: ["유튜브 스토어 탭을 통해 [YOUTUBE EVENT] 상품으로 구매해야 특전 적용", "VLAST Shop 발송 (vlastshop.com 제공)", "주문 후 단순 변심 환불 불가"],
   },
   {
+    id: "vlast_driving",
+    name: "VLAST 드라이빙 토크",
+    country: "KR",
+    currency: "KRW",
+    type: "official",
+    url: "https://vlastshop.com/product/driving-talk-event-plave-4th-mini-album-caligo-pt2-pocaalbum-ver5%EC%A2%85-%EC%A4%91-%EB%9E%9C/305/category/1/display/3/",
+    shippingFee: 3000,
+    shippingFreeOver: 50000,
+    shippingNote: "5만원 이상 무료",
+    deadline: "2026-04-20 23:00",
+    products: [
+      { version: "POCAALBUM", saleType: "random", price: 8200, currency: "KRW", url: "https://vlastshop.com/product/driving-talk-event-plave-4th-mini-album-caligo-pt2-pocaalbum-ver5%EC%A2%85-%EC%A4%91-%EB%9E%9C/305/category/1/display/3/" },
+    ],
+    benefits: [
+      { type: "photocard", name: "드라이빙 토크 응모자 미공포", description: "POCAALBUM 구매 시 미공개 포토카드 1장 랜덤 (앨범 1장당 1장, 응모 1종 1장)", isExclusive: true, versions: ["POCAALBUM"], image: "/benefits/vlast-drive.png" },
+      { type: "event", name: "드라이빙 토크 이벤트", description: "POCAALBUM 구매 시 1:1 온라인 영상통화 응모 (총 100명·멤버당 20명, 1분 토크, 영통 5/31, 당첨 발표 4/21 16:00, 사인 포토카드 미증정)", isExclusive: false, versions: ["POCAALBUM"] },
+    ],
+    salePeriods: [
+      { type: "online", start: "2026-04-14 11:00", end: "2026-04-20 23:00", versions: ["POCAALBUM"] },
+    ],
+    notes: ["결제 완료 시간 기준", "응모 기간 이후 취소/환불 불가", "1인당 1장 응모 수량 제한", "VLAST SHOP(블샵) 운영"],
+  },
+  {
     id: "weverse",
     name: "Weverse Shop",
     country: "KR",
@@ -154,7 +177,7 @@ export const RETAILERS: Retailer[] = [
       { version: "INVENTORY", saleType: "set", price: 85500, currency: "KRW", url: "https://www.makestar.com/product/16507" },
     ],
     benefits: [
-      { type: "photocard", name: "메이크스타 미공포", description: "앨범 1매당 미공개 포토카드 5종 중 랜덤 1매 (2매 이상 구매 시 중복없이, 온/오프라인 동일)", isExclusive: true, versions: ["POCAALBUM"], image: "/benefits/makestar.png" },
+      { type: "photocard", name: "메이크스타 미공포", description: "앨범 1매당 미공개 포토카드 5종 중 랜덤 1매 (2매 이상 구매 시 중복없이, 온/오프라인 동일)", isExclusive: true, versions: ["POCAALBUM"], image: "/benefits/makestar-new.jpeg" },
     ],
     salePeriods: [
       { type: "online", start: "2026-03-24 11:00", end: "2026-04-20 19:59" },
@@ -183,7 +206,7 @@ export const RETAILERS: Retailer[] = [
       { version: "POCAALBUM", saleType: "set", price: 41000, currency: "KRW", url: "https://www.musinsa.com/products/6176536" },
     ],
     benefits: [
-      { type: "photocard", name: "무신사 1차 미공포", description: "미공개 포토카드 5종 중 1종 랜덤 (1:1, 2장 이상 구매 시 중복없이, 온/오프라인 동일)", isExclusive: true, versions: ["ID_PASS"], image: "/benefits/musinsa-S.png" },
+      { type: "photocard", name: "무신사 1차 미공포", description: "미공개 포토카드 5종 중 1종 랜덤 (1:1, 2장 이상 구매 시 중복없이, 온/오프라인 동일)", isExclusive: true, versions: ["ID_PASS"], image: "/benefits/musinsa-S-new.jpeg" },
     ],
     salePeriods: [
       { type: "online", start: "2026-03-24 11:00", end: "2026-04-13 23:59" },
@@ -235,7 +258,7 @@ export const RETAILERS: Retailer[] = [
       { version: "POCAALBUM", saleType: "set", price: 41000, currency: "KRW", url: "https://www.oliveyoung.co.kr/store/goods/getGoodsDetail.do?goodsNo=B000000251981" },
     ],
     benefits: [
-      { type: "photocard", name: "단독 미공포", description: "미공개 포토카드 5종 중 랜덤 1종 (1:1, 온/오프라인 동일)", isExclusive: true, versions: ["ID_PASS"], image: "/benefits/olive-Y.png" },
+      { type: "photocard", name: "단독 미공포", description: "미공개 포토카드 5종 중 랜덤 1종 (1:1, 온/오프라인 동일)", isExclusive: true, versions: ["ID_PASS"], image: "/benefits/olive-Y-new.jpeg" },
     ],
     salePeriods: [
       { type: "online", start: "2026-03-24 11:00", end: "2026-04-20 22:00" },
@@ -263,7 +286,7 @@ export const RETAILERS: Retailer[] = [
       { version: "POCAALBUM", saleType: "set", price: 41000, currency: "KRW", url: "http://musicart.kr/shop/shopdetail.html?branduid=3530779" },
     ],
     benefits: [
-      { type: "photocard", name: "영풍문고 미공포", description: "미공개 포토카드 5종 중 1종 랜덤 (1:1, 2장 이상 구매 시 중복없이, 온/오프라인 3곳 동일)", isExclusive: true, versions: ["POCAALBUM"], image: "/benefits/yp.png" },
+      { type: "photocard", name: "영풍문고 미공포", description: "미공개 포토카드 5종 중 1종 랜덤 (1:1, 2장 이상 구매 시 중복없이, 온/오프라인 3곳 동일)", isExclusive: true, versions: ["POCAALBUM"], image: "/benefits/yp-new.jpeg" },
     ],
     salePeriods: [
       { type: "online", start: "2026-03-24 11:00", end: "2026-04-20 22:00" },
@@ -461,7 +484,7 @@ export const RETAILERS: Retailer[] = [
       { version: "ID_PASS", saleType: "set", price: 122060, currency: "KRW" },
     ],
     benefits: [
-      { type: "photocard", name: "타워레코 미공포 (도안 B)", description: "멤버별 포토카드 5종 (단품 1장 랜덤 / 세트 5장 1세트, 도안 미공개)", isExclusive: true, versions: ["ID_PASS"], image: "/benefits/tower.png" },
+      { type: "photocard", name: "타워레코 미공포 (도안 B)", description: "멤버별 포토카드 5종 (단품 1장 랜덤 / 세트 5장 1세트, 도안 미공개)", isExclusive: true, versions: ["ID_PASS"], image: "/benefits/tower-new.jpeg" },
     ],
     chartReflection: ["한터", "써클", "오리콘", "Billboard JP"],
     notes: ["품절 시 조기마감", "1·2차 합배송 불가", "출고 5월 초~중반 예정", "일본 가격: 랜덤 ¥2,420 / 세트 ¥12,100"],
@@ -482,7 +505,7 @@ export const RETAILERS: Retailer[] = [
       { version: "ID_PASS", saleType: "set", price: 122060, currency: "KRW" },
     ],
     benefits: [
-      { type: "photocard", name: "HMV 미공포 (도안 A)", description: "멤버별 포토카드 5종 (단품 1장 랜덤 / 세트 5장 1세트, 도안 미공개)", isExclusive: true, versions: ["ID_PASS"], image: "/benefits/hmv.png" },
+      { type: "photocard", name: "HMV 미공포 (도안 A)", description: "멤버별 포토카드 5종 (단품 1장 랜덤 / 세트 5장 1세트, 도안 미공개)", isExclusive: true, versions: ["ID_PASS"], image: "/benefits/hmv-new.jpeg" },
     ],
     chartReflection: ["한터", "써클", "오리콘", "Billboard JP"],
     notes: ["품절 시 조기마감", "1·2차 합배송 불가", "출고 5월 초~중반 예정", "일본 가격: 랜덤 ¥2,420 / 세트 ¥12,100"],
@@ -561,7 +584,7 @@ export const RETAILERS: Retailer[] = [
       { version: "ID_PASS", saleType: "set", price: 122060, currency: "KRW", url: "https://09platform.com/surl/P/1312" },
     ],
     benefits: [
-      { type: "photocard", name: "타워레코 미공포 (도안 B)", description: "멤버별 포토카드 5종 (단품 1장 랜덤 / 세트 5장 1세트)", isExclusive: true, versions: ["ID_PASS"], image: "/benefits/tower.png" },
+      { type: "photocard", name: "타워레코 미공포 (도안 B)", description: "멤버별 포토카드 5종 (단품 1장 랜덤 / 세트 5장 1세트)", isExclusive: true, versions: ["ID_PASS"], image: "/benefits/tower-new.jpeg" },
     ],
     chartReflection: ["한터", "써클", "오리콘", "Billboard JP"],
     salePeriods: [
@@ -586,7 +609,7 @@ export const RETAILERS: Retailer[] = [
       { version: "ID_PASS", saleType: "set", price: 122060, currency: "KRW", url: "https://09platform.com/surl/P/1312" },
     ],
     benefits: [
-      { type: "photocard", name: "HMV 미공포 (도안 A)", description: "멤버별 포토카드 5종 (단품 1장 랜덤 / 세트 5장 1세트)", isExclusive: true, versions: ["ID_PASS"], image: "/benefits/hmv.png" },
+      { type: "photocard", name: "HMV 미공포 (도안 A)", description: "멤버별 포토카드 5종 (단품 1장 랜덤 / 세트 5장 1세트)", isExclusive: true, versions: ["ID_PASS"], image: "/benefits/hmv-new.jpeg" },
     ],
     chartReflection: ["한터", "써클", "오리콘", "Billboard JP"],
     salePeriods: [
@@ -703,7 +726,7 @@ export const RETAILERS: Retailer[] = [
     shippingFee: null,
     products: [],
     benefits: [
-      { type: "photocard", name: "POP-UP 미공포", description: "Caligo Pt.2 모든 버전 구매 시 미공개 포토카드 (플레이브 친필싸인 포토카드 랜덤 제공)", isExclusive: true },
+      { type: "photocard", name: "POP-UP 미공포", description: "Caligo Pt.2 모든 버전 구매 시 미공개 포토카드 (플레이브 친필싸인 포토카드 랜덤 제공)", isExclusive: true, image: "/benefits/thehyundea-new.jpeg" },
     ],
     salePeriods: [
       { type: "offline", store: "더현대 서울 5F Epic Seoul", start: "2026-04-14 10:30", end: "2026-04-19 20:30" },
@@ -795,7 +818,7 @@ export const RETAILERS: Retailer[] = [
       { version: "ID_PASS", saleType: "set", price: 74500, currency: "KRW", url: "https://animate-onlineshop.co.kr/goods/goods_view.php?goodsNo=1000089045" },
     ],
     benefits: [
-      { type: "photocard", name: "Animate 한정 미공포 (패턴C)", description: "미공개 포토카드 5종 (단품 랜덤 1장 / 세트 5장 1세트, 특전 소진 시 종료)", isExclusive: true, versions: ["ID_PASS"], image: "/benefits/animate.png" },
+      { type: "photocard", name: "Animate 한정 미공포 (패턴C)", description: "미공개 포토카드 5종 (단품 랜덤 1장 / 세트 5장 1세트, 특전 소진 시 종료)", isExclusive: true, versions: ["ID_PASS"], image: "/benefits/animate-new.jpeg" },
     ],
     deadline: "2026-04-13",
     notes: ["특전 소진 시 조기마감", "일본 가격: 랜덤 ¥2,420 / 세트 ¥12,100 (국내와 동일 특전)"],
@@ -819,7 +842,7 @@ export const RETAILERS: Retailer[] = [
       { version: "POCAALBUM", saleType: "set", price: 41000, currency: "KRW", url: "https://kr.ktown4u.com/eventinfo?eve_no=44148946&biz_no=967" },
     ],
     benefits: [
-      { type: "photocard", name: "Ktown4u 럭드로 미공포", description: "POCAALBUM 1장당 미공개 포토카드 5종 중 1종 랜덤 (1:1)", isExclusive: true, versions: ["POCAALBUM"], image: "/benefits/kt4.png" },
+      { type: "photocard", name: "Ktown4u 럭드로 미공포", description: "POCAALBUM 1장당 미공개 포토카드 5종 중 1종 랜덤 (1:1)", isExclusive: true, versions: ["POCAALBUM"], image: "/benefits/kt4-new.jpeg" },
     ],
     salePeriods: [
       { type: "online", start: "2026-04-14 11:00", end: "2026-04-20 20:00", versions: ["POCAALBUM"] },
@@ -836,7 +859,7 @@ export const RETAILERS: Retailer[] = [
     shippingFee: null,
     products: [],
     benefits: [
-      { type: "photocard", name: "ASTERUM 미공포", description: "Caligo Pt.2 모든 버전 구매 시 미공개 포토카드 (A2T DRAW와 동일)", isExclusive: true },
+      { type: "photocard", name: "ASTERUM 미공포", description: "Caligo Pt.2 모든 버전 구매 시 미공개 포토카드 (A2T DRAW와 동일)", isExclusive: true, image: "/benefits/10cafe-new.jpeg" },
     ],
     salePeriods: [
       { type: "offline", store: "서울 서대문구 연희로11가길 48-23 Asterum 433-10", start: "2026-04-20 15:00", end: "2026-04-20 23:00" },

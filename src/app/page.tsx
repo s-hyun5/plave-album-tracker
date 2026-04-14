@@ -73,7 +73,7 @@ function useExchangeRates(): ExchangeRateState {
 const BUILD_TIME = process.env.NEXT_PUBLIC_BUILD_TIME ?? "";
 
 const UPDATE_LOG = [
-  { date: "2026.04.14", message: "위드뮤·Ktown4u 럭키드로우·PLAVE 유튜브 스토어 추가, 판매처 리스트 섹션별 그룹핑, 카드 상세 버튼 개선, 미공포 페이지 개편" },
+  { date: "2026.04.14", message: "블샵 드라이빙·위드뮤·Ktown4u·유튜브 스토어 판매처 추가, 미공포 10종 블러 해제, 섹션 그룹핑, 미공포 페이지 개편" },
   { date: "2026.04.09", message: "위버스JP/UNIVERSAL MUSIC 영통 추가, 미공포 D 이미지 공개, 마감 판매처 하단 정렬, 구매 제외 필터 추가" },
   { date: "2026.04.07", message: "위버스샵 일본 추가, hello82 미공포 이미지 공개, 데이터 업데이트" },
 ];

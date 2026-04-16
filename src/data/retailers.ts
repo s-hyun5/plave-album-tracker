@@ -77,7 +77,7 @@ export const RETAILERS: Retailer[] = [
       { version: "POCAALBUM", saleType: "set", price: 41000, currency: "KRW", url: "https://vlastshop.com/product/plave-4th-mini-album-caligo-pt2-pocaalbum-ver5%EC%A2%85-%EC%84%B8%ED%8A%B8/296/category/1/display/3/" },
     ],
     benefits: [
-      { type: "photocard", name: "VLAST 미공포", description: "포토카드 5종 중 1종 랜덤 증정 (앨범 1장당 1장)", isExclusive: true, versions: ["PHOTOBOOK"], image: "/benefits/vlast.png" },
+      { type: "photocard", name: "VLAST 미공포", description: "포토카드 5종 중 1종 랜덤 증정 (앨범 1장당 1장)", isExclusive: true, versions: ["PHOTOBOOK"], image: "/benefits/vlast-new.jpeg" },
       { type: "event", name: "영상통화 이벤트 1차", description: "3/24~3/27 23:59, 총 50명·멤버당 10명, 사인회 4/19 (영통 이벤트 구매페이지에서 구매 시에만 응모 적용, 일반판매 불가)", isExclusive: false, versions: ["PHOTOBOOK"] },
     ],
     salePeriods: [
@@ -152,7 +152,7 @@ export const RETAILERS: Retailer[] = [
       { version: "POCAALBUM", saleType: "set", price: 41000, currency: "KRW", url: "https://shop.weverse.io/ko/shop/KRW/artists/167/sales/55970" },
     ],
     benefits: [
-      { type: "photocard", name: "위버스 예약특전", description: "앨범 1장당 미공개 포토카드 5종 중 1종 랜덤 제공", isExclusive: true, versions: ["POCAALBUM"], image: "/benefits/weverse.png" },
+      { type: "photocard", name: "위버스 예약특전", description: "앨범 1장당 미공개 포토카드 5종 중 1종 랜덤 제공", isExclusive: true, versions: ["POCAALBUM"], image: "/benefits/weverse-new.jpeg" },
     ],
     salePeriods: [
       { type: "online", start: "2026-03-24 11:00", end: "2026-04-13 23:59" },
@@ -336,7 +336,7 @@ export const RETAILERS: Retailer[] = [
       { version: "POCAALBUM", saleType: "set", price: 1050, currency: "TWD", url: "https://www.willmusic.com.tw/SalePage/Index/11651580" },
     ],
     benefits: [
-      { type: "photocard", name: "WillMusic 미공포", description: "POCAALBUM 구매 시 미공개 포토카드 5종 중 1종 랜덤", isExclusive: true, versions: ["POCAALBUM"], image: "/benefits/will.png" },
+      { type: "photocard", name: "WillMusic 미공포", description: "POCAALBUM 구매 시 미공개 포토카드 5종 중 1종 랜덤", isExclusive: true, versions: ["POCAALBUM"], image: "/benefits/will-new.png" },
     ],
     salePeriods: [
       { type: "online", start: "2026-03-24 10:00", end: "2026-04-20 23:59" },
@@ -543,7 +543,7 @@ export const RETAILERS: Retailer[] = [
       { version: "POCAALBUM", saleType: "set", price: 52532, currency: "KRW", url: "https://www.hoottown.com/sell/sellDtl?P2603240000021802=&utm_campaign=mopromo&utm_content=plave_will_set&utm_medium=social&utm_source=X" },
     ],
     benefits: [
-      { type: "photocard", name: "WillMusic 독점 미공포", description: "WillMusic 미공개 특전 미니카드 (세트 구매 시 중복없이 5장)", isExclusive: true, versions: ["POCAALBUM"], image: "/benefits/will.png" },
+      { type: "photocard", name: "WillMusic 독점 미공포", description: "WillMusic 미공개 특전 미니카드 (세트 구매 시 중복없이 5장)", isExclusive: true, versions: ["POCAALBUM"], image: "/benefits/will-new.png" },
     ],
     notes: ["판매처 수량 제한 요청으로 조기 마감 (4/13)", "한국만 배송", "출고: 발매일(4/14) 이후 순차발송"],
   },
@@ -637,7 +637,7 @@ export const RETAILERS: Retailer[] = [
       { version: "POCAALBUM", saleType: "set", price: 41000, currency: "KRW", url: "https://www.musicplant.co.kr/shop/search_result.php?search_str=%ED%94%8C%EB%A0%88%EC%9D%B4%EB%B8%8C&x=0&y=0" },
     ],
     benefits: [
-      { type: "photocard", name: "뮤직플랜트 미공포", description: "미공개 포토카드 5종 중 1종 랜덤 (2개 이상 구매 시 중복없이, 앨범 중복 가능)", isExclusive: true, versions: ["INVENTORY"], image: "/benefits/music-P.png" },
+      { type: "photocard", name: "뮤직플랜트 미공포", description: "미공개 포토카드 5종 중 1종 랜덤 (2개 이상 구매 시 중복없이, 앨범 중복 가능)", isExclusive: true, versions: ["INVENTORY"], image: "/benefits/music-P-new.jpeg" },
       { type: "event", name: "영상통화 이벤트 2차", description: "INVENTORY 구매 시 영상통화 이벤트 응모 (50명 추첨, 영통 4/26)", isExclusive: false, versions: ["INVENTORY"] },
     ],
     salePeriods: [
@@ -817,7 +817,7 @@ export const RETAILERS: Retailer[] = [
       { version: "ID_PASS", saleType: "set", price: 74500, currency: "KRW", url: "https://animate-onlineshop.co.kr/goods/goods_view.php?goodsNo=1000089045" },
     ],
     benefits: [
-      { type: "photocard", name: "Animate 한정 미공포 (패턴C)", description: "미공개 포토카드 5종 (단품 랜덤 1장 / 세트 5장 1세트, 특전 소진 시 종료)", isExclusive: true, versions: ["ID_PASS"], image: "/benefits/animate-new.jpeg" },
+      { type: "photocard", name: "Animate 한정 미공포 (패턴C)", description: "미공개 포토카드 5종 (단품 랜덤 1장 / 세트 5장 1세트, 특전 소진 시 종료)", isExclusive: true, versions: ["ID_PASS"], image: "/benefits/animate-new.png" },
     ],
     deadline: "2026-04-13",
     notes: ["특전 소진 시 조기마감", "일본 가격: 랜덤 ¥2,420 / 세트 ¥12,100 (국내와 동일 특전)"],

@@ -669,6 +669,29 @@ export const RETAILERS: Retailer[] = [
     notes: ["적립금/쿠폰 사용 불가", "주문 취소/환불 불가", "디스코드·WeChat으로만 영통 진행", "영통 미응모 시 미응모 선택 필수 (구매 후 변경 불가)", "응모기간 내 구매 시 자동 응모, 당첨 발표 1시간 전까지 취소 가능"],
   },
   {
+    id: "buffz",
+    name: "Buffz",
+    country: "KR",
+    currency: "KRW",
+    type: "retailer",
+    url: "https://buffz.co.kr/surl/P/3991",
+    shippingFee: 3000,
+    shippingFreeOver: 50000,
+    shippingNote: "5만원 이상 무료",
+    deadline: "2026-04-19 23:59",
+    products: [
+      { version: "PHOTOBOOK", saleType: "single", price: 20000, currency: "KRW", url: "https://buffz.co.kr/surl/P/3991" },
+    ],
+    benefits: [
+      { type: "photocard", name: "Buffz 미공포", description: "PHOTOBOOK 구매 시 미공개 포토카드 5종 중 1종 랜덤 (앨범 1장당 1장, 2장 이상 구매 시 중복없이)", isExclusive: true, versions: ["PHOTOBOOK"], image: "/benefits/buffz.png" },
+      { type: "event", name: "영상통화 사인회", description: "PHOTOBOOK 구매 시 1:1 영상통화 사인회 응모 (총 50명·멤버당 10명, 영통 5/30, 당첨 발표 4/20 14:00, 당첨자 친필 사인 포토카드 1매 증정)", isExclusive: false, versions: ["PHOTOBOOK"] },
+    ],
+    salePeriods: [
+      { type: "online", start: "2026-04-17 11:00", end: "2026-04-19 23:59", versions: ["PHOTOBOOK"] },
+    ],
+    notes: ["결제 완료 시간 기준", "Discord/WeChat으로 영통 진행", "응모 기간 이후 취소/환불 불가"],
+  },
+  {
     id: "withmuu",
     name: "위드뮤",
     country: "KR",
